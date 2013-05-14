@@ -1,0 +1,341 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public static class MeshGenerator
+{
+	/// <summary>
+	/// Creates the new mesh plane with normals, uvs, and tangents.
+	/// </summary>
+	/// <returns>
+	/// The new unoptimized mesh plane.
+	/// </returns>
+	/// <param name='height'>
+	/// Plane height.
+	/// </param>
+	/// <param name='width'>
+	/// Plane width.
+	/// </param>
+	/// <param name='showSeams'>
+	/// Whether or not the new mesh should show its seams.  That is, should the
+	/// vertex normals be calculated as the average of all face normals
+	/// (<c>false</c>), or should each vertex normal be the normal for a single
+	/// face (<c>true</c>).
+	/// </param>
+	public static Mesh CreateNewMeshPlane(uint height, uint width, bool showSeams)
+	{
+		//Center mesh on origin
+		float xMax = width/2.0f;
+		float zMax = height/2.0f;
+		float xMin = -xMax;
+		float zMin = -zMax;
+		
+		//Create lists for adding to mesh
+		List<Vector3> allVerts = new List<Vector3>();
+		List<Vector3> vertLst = new List<Vector3>();
+		List<Vector3> nrmlLst = new List<Vector3>();
+		List<Vector2> uvLst = new List<Vector2>();
+		List<int> triLst = new List<int>();
+		
+		for(float z=zMax;z>=zMin;--z)
+			for(float x=xMax;x>=xMin;--x)
+				allVerts.Add(new Vector3(x, 0.0f, z));
+		
+		if(showSeams)
+			BuildListsRough(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		else
+			BuildListsSmooth(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		
+		Mesh ret = new Mesh();
+		ret.vertices = vertLst.ToArray();
+		ret.triangles = triLst.ToArray();
+		ret.normals = nrmlLst.ToArray();
+		ret.uv = uvLst.ToArray();
+		ret.tangents = CalculateMeshTangents(ret);
+		return ret;
+	}
+	
+	public static Mesh CreateNewMeshPlane(uint height, uint width)
+	{
+		return CreateNewMeshPlane(height, width, false);
+	}
+	
+	private static void BuildListsSmooth(uint height, uint width,
+													ref List<Vector3> allVerts,
+													ref List<Vector3> vertLst,
+													ref List<Vector3> nrmlLst,
+													ref List<Vector2> uvLst,
+													ref List<int> triLst)
+	{
+		vertLst = allVerts;
+		for(int r=0;r<height;++r)
+		{
+			for(int c=0;c<width;++c)
+			{
+				int tl = r * (int)(height + 1) + c;
+				int tr = tl + 1;
+				int bl = tl + (int)height + 1;
+				int br = bl + 1;
+				
+				if(((r+c) & 1) == 0) //r+c is even
+				{
+					/*
+					 * Do Bottom-Left Triangle
+					 */
+					triLst.Add(tl);
+					triLst.Add(bl);
+					triLst.Add(br);
+					
+					/*
+					 * Do Upper-Right Triangle
+					 */
+					triLst.Add(br);
+					triLst.Add(tr);
+					triLst.Add(tl);
+				}
+				else //r+c is odd
+				{
+					/*
+					 * Do Upper-Left Triangle
+					 */
+					triLst.Add(tl);
+					triLst.Add(bl);
+					triLst.Add(tr);
+					
+					/*
+					 * Do Bottom-Right Triangle
+					 */
+					triLst.Add(tr);
+					triLst.Add(bl);
+					triLst.Add(br);
+				}
+			}
+		}
+		
+		foreach(Vector3 vert in vertLst)
+		{
+			uvLst.Add(new Vector2(vert.x, vert.z));
+			nrmlLst.Add(Vector3.up);
+		}
+		/*
+		int faceIdx = 0;
+		List<Vector3> faceNrmlLst = new List<Vector3>();
+		List<int>.Enumerator enumerator = triLst.GetEnumerator();
+		Dictionary<int, HashSet<int>> vertsToFaces = new Dictionary<int, HashSet<int>>();
+		while(enumerator.MoveNext())
+		{
+			int v1Idx = enumerator.Current;
+			Vector3 vert1 = vertLst[v1Idx];
+			MapFaceToVert(ref vertsToFaces, v1Idx, faceIdx);
+			enumerator.MoveNext();
+			
+			int v2Idx = enumerator.Current;
+			Vector3 vert2 = vertLst[v2Idx];
+			MapFaceToVert(ref vertsToFaces, v2Idx, faceIdx);
+			enumerator.MoveNext();
+			
+			int v3Idx = enumerator.Current;
+			Vector3 vert3 = vertLst[v3Idx];
+			MapFaceToVert(ref vertsToFaces, v2Idx, faceIdx);
+			enumerator.MoveNext();
+			
+			Vector3 edge1 = vert1 - vert2;
+			Vector3 edge2 = vert3 - vert2;
+			Vector3 faceNrml = Vector3.Cross(edge1, edge2).normalized;
+			faceNrmlLst.Add (faceNrml);
+			++faceIdx;
+		}*/
+	}
+	
+	private static void BuildListsRough(uint height, uint width,
+													ref List<Vector3> allVerts,
+													ref List<Vector3> vertLst,
+													ref List<Vector3> nrmlLst,
+													ref List<Vector2> uvLst,
+													ref List<int> triLst)
+	{
+		int nTris = 0;
+		for(int r=0;r<height;++r)
+		{
+			for(int c=0;c<width;++c)
+			{
+				int tl = r * (int)(height + 1) + c;
+				int tr = tl + 1;
+				int bl = tl + (int)height + 1;
+				int br = bl + 1;
+				
+				if(((r+c) & 1) == 0) //r+c is even
+				{
+					/*
+					 * Do Bottom-Left Triangle
+					 */
+					vertLst.Add (allVerts[tl]);
+					vertLst.Add (allVerts[bl]);
+					vertLst.Add (allVerts[br]);
+					
+					//normal and tri index for all three new vertices
+					for(int i=0;i<3;++i)
+					{
+						nrmlLst.Add (Vector3.up);
+						triLst.Add(nTris++);
+					}
+					
+					//add uvs
+					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
+					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
+					
+					/*
+					 * Do Upper-Right Triangle
+					 */
+					vertLst.Add (allVerts[br]);
+					vertLst.Add (allVerts[tr]);
+					vertLst.Add (allVerts[tl]);
+					
+					//normal and tri index for all three new vertices
+					for(int i=0;i<3;++i)
+					{
+						nrmlLst.Add (Vector3.up);
+						triLst.Add(nTris++);
+					}
+					
+					//add uvs
+					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
+					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
+					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
+				}
+				else //r+c is odd
+				{
+					/*
+					 * Do Upper-Left Triangle
+					 */
+					vertLst.Add (allVerts[tl]);
+					vertLst.Add (allVerts[bl]);
+					vertLst.Add (allVerts[tr]);
+					
+					//normal and tri index for all three new vertices
+					for(int i=0;i<3;++i)
+					{
+						nrmlLst.Add (Vector3.up);
+						triLst.Add(nTris++);
+					}
+					
+					//add uvs
+					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
+					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
+					
+					/*
+					 * Do Bottom-Right Triangle
+					 */
+					vertLst.Add (allVerts[tr]);
+					vertLst.Add (allVerts[bl]);
+					vertLst.Add (allVerts[br]);
+					
+					//normal and tri index for all three new vertices
+					for(int i=0;i<3;++i)
+					{
+						nrmlLst.Add (Vector3.up);
+						triLst.Add(nTris++);
+					}
+					
+					//add uvs
+					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
+					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
+				}
+			}
+		}
+	}
+	
+	private static void MapFaceToVert(ref Dictionary<int, HashSet<int>> vertsToFaces, int vertIdx, int faceIdx)
+	{
+		HashSet<int> faceSet;
+		vertsToFaces.TryGetValue(vertIdx, out faceSet);
+		if(faceSet == null) //did not find vertex
+			faceSet = new HashSet<int>();
+		
+		//no matter what, add the faceIdx to the face set and create new
+		//Dictionary entry
+		faceSet.Add(faceIdx);
+		vertsToFaces.Add (vertIdx, faceSet);
+	}
+	
+	public static Vector4[] CalculateMeshTangents(Mesh mesh)
+	{
+	    //speed up math by copying the mesh arrays
+	    int[] triangles = mesh.triangles;
+	    Vector3[] vertices = mesh.vertices;
+	    Vector2[] uv = mesh.uv;
+	    Vector3[] normals = mesh.normals;
+	 
+	    //variable definitions
+	    int triangleCount = triangles.Length;
+	    int vertexCount = vertices.Length;
+	 
+	    Vector3[] tan1 = new Vector3[vertexCount];
+	    Vector3[] tan2 = new Vector3[vertexCount];
+	 
+	    Vector4[] tangents = new Vector4[vertexCount];
+	 
+	    for (long a = 0; a < triangleCount; a += 3)
+	    {
+	        long i1 = triangles[a + 0];
+	        long i2 = triangles[a + 1];
+	        long i3 = triangles[a + 2];
+	 
+	        Vector3 v1 = vertices[i1];
+	        Vector3 v2 = vertices[i2];
+	        Vector3 v3 = vertices[i3];
+	 
+	        Vector2 w1 = uv[i1];
+	        Vector2 w2 = uv[i2];
+	        Vector2 w3 = uv[i3];
+	 
+	        float x1 = v2.x - v1.x;
+	        float x2 = v3.x - v1.x;
+	        float y1 = v2.y - v1.y;
+	        float y2 = v3.y - v1.y;
+	        float z1 = v2.z - v1.z;
+	        float z2 = v3.z - v1.z;
+	 
+	        float s1 = w2.x - w1.x;
+	        float s2 = w3.x - w1.x;
+	        float t1 = w2.y - w1.y;
+	        float t2 = w3.y - w1.y;
+	 
+			float div = (s1 * t2 - s2 * t1);
+	        float r = (div==0.0f)?0.0f:(1.0f / div);
+	 
+	        Vector3 sdir = new Vector3((t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r);
+	        Vector3 tdir = new Vector3((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r);
+	 
+	        tan1[i1] += sdir;
+	        tan1[i2] += sdir;
+	        tan1[i3] += sdir;
+	 
+	        tan2[i1] += tdir;
+	        tan2[i2] += tdir;
+	        tan2[i3] += tdir;
+	    }
+	 
+	 
+	    for (long a = 0; a < vertexCount; ++a)
+	    {
+	        Vector3 n = normals[a];
+	        Vector3 t = tan1[a];
+	 
+	        //Vector3 tmp = (t - n * Vector3.Dot(n, t)).normalized;
+	        //tangents[a] = new Vector4(tmp.x, tmp.y, tmp.z);
+	        Vector3.OrthoNormalize(ref n, ref t);
+	        tangents[a].x = t.x;
+	        tangents[a].y = t.y;
+	        tangents[a].z = t.z;
+	 
+	        tangents[a].w = (Vector3.Dot(Vector3.Cross(n, t), tan2[a]) < 0.0f) ? -1.0f : 1.0f;
+	    }
+	 
+	    return tangents;
+	}
+	
+}
+
