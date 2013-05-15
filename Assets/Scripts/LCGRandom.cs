@@ -14,7 +14,7 @@ public class LCGRandom
 		get
 		{
 			if(_instance == null)
-				_instance = new LCGRandom();
+				_instance = new LCGRandom(System.DateTime.Now.Second + System.DateTime.Now.Millisecond);
 			
 			return _instance;
 		}
@@ -92,6 +92,11 @@ public class LCGRandom
 		Init(0x100000000u, 1664525u, 1013904223u, seed);
 	}
 	
+	public LCGRandom(int seed)
+	{
+		Init(0x100000000u, 1664525u, 1013904223u, (uint)seed);
+	}
+	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="LCGRandom"/> class.
 	/// </summary>
@@ -144,6 +149,17 @@ public class LCGRandom
 		return Next();
 	}
 	
+	public float NextPct()
+	{
+		return (Next()%101)/100.0f;
+	}
+	
+	public float NextPct(uint seed)
+	{
+		_last = seed;
+		return NextPct ();
+	}
+	
 	public ulong Modulus
 	{
 		get { return _modulus; }
@@ -161,6 +177,8 @@ public class LCGRandom
 		get { return _increment; }
 		set { _increment = value; }
 	}
+	
+	public uint Seed { set { _last = value; } }
 	
 	public uint Last { get { return _last; } }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 
 public class CloudFractal
@@ -7,32 +8,34 @@ public class CloudFractal
 	private int _size;
 	private uint _seed;
 	private float[] _startVals;
+	private LCGRandom _lcg;
 	
 	public CloudFractal(int size)
 	{
-		Init (size, 0, new float[] { CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)) });
+		_lcg = new LCGRandom(0);
+		_seed = 0;
+		Init (size, new float[] { _lcg.NextPct(), _lcg.NextPct(), _lcg.NextPct(),
+									_lcg.NextPct()});
 	}
 	
 	public CloudFractal(int size, uint seed)
 	{
-		Init (size, seed, new float[] { CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)),
-										CoherentNoise((float)(_seed++)) });
+		_lcg = new LCGRandom(seed);
+		_seed = seed;
+		Init (size, new float[] { _lcg.NextPct(), _lcg.NextPct(), _lcg.NextPct(),
+									_lcg.NextPct()});
 	}
 	
 	public CloudFractal(int size, uint seed, float[] startVals)
 	{
-		Init(size, seed, startVals);
+		_lcg = new LCGRandom(seed);
+		_seed  = seed;
+		Init(size, startVals);
 	}
 	
-	private void Init(int size, uint seed, float[] startVals)
+	private void Init(int size, float[] startVals)
 	{
 		_size = size;
-		_seed = seed;
 		_startVals = startVals;
 		
 		_midpoints = new float[(_size) * (_size)];
@@ -74,38 +77,13 @@ public class CloudFractal
 	private float Displace(float n)
 	{
 		float max = n/(2.0f*_size)*3.0f;
-		return max * (Mathf.Abs(CoherentNoise(_seed)) - 0.5f);
+		return max * (_lcg.NextPct() - 0.5f);
 	}
-	
-	private float IntegerNoise(int n)
-	{
-		//the large ints are primes, they can be modified as long as they remain
-		//prime.
-		n = (n >> 13) ^ n;
-		n = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff;
-		return 1.0f - (n/1073741824.0f);
-	}
-	
-	private float CoherentNoise(float x)
-	{
-		int xi = Mathf.FloorToInt(x);
-		float n0 = IntegerNoise(xi);
-		float n1 = IntegerNoise(xi+1);
-		float weight = x - Mathf.Floor(x);
-		float noise = Mathf.Lerp(n0, n1, SCurve(weight));
-		return noise;
-	}
-	
-	private float SCurve(float x)
-	{
-		return x*x*(-2*x+3);
 		
-	}
-	
 	public uint Seed
 	{
 		get { return _seed; }
-		set { _seed = value; }
+		set { _seed = value; _lcg.Seed = _seed;}
 	}
 	
 	public int Size
@@ -118,8 +96,8 @@ public class CloudFractal
 	{
 		get
 		{
-			GeneratePoints(0,0,_size,_size, _startVals[0], _startVals[1],
-											_startVals[2], _startVals[3]);
+			GeneratePoints(0, 0, _size, _size, _startVals[0], _startVals[1],
+												_startVals[2], _startVals[3]);
 			return _midpoints;
 		}
 	}

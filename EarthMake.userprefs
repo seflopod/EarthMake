@@ -1,11 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Editor\TerrainGeneratorWindow.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\HeightMapSerializer.cs">
     <Files>
-      <File FileName="Assets\Scripts\TerrainGenerator.cs" Line="44" Column="3" />
-      <File FileName="Assets\Scripts\LCGRandom.cs" Line="162" Column="30" />
-      <File FileName="c:\Users\pbartosch\Documents\GitHub\EarthMake\Assets\Scripts\FractalMesh.cs" Line="21" Column="100" />
-      <File FileName="Assets\Editor\TerrainGeneratorWindow.cs" Line="248" Column="29" />
+      <File FileName="Assets\Scripts\HeightMapSerializer.cs" Line="48" Column="3" />
+      <File FileName="Assets\Editor\TerrainGeneratorWindow.cs" Line="3" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
