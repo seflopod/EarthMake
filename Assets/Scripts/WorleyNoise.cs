@@ -1,3 +1,29 @@
+// 
+// WorleyNoise.cs
+//  
+// Author:
+//       Peter Bartosch <bartoschp@gmail.com>
+// 
+// Copyright (c) 2013 Peter Bartosch
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 using UnityEngine;
 
 public class WorleyNoise
@@ -9,7 +35,6 @@ public class WorleyNoise
 	private System.Func<Vector3, Vector3, float> _distanceFunc;
 	private CombineType _combiner;
 	private System.Func<float[], float> _combinerFunc;
-	
 	private float[] _field;
 	private LCGRandom _lcg;
 	private FNVHash _fnv;
@@ -33,7 +58,7 @@ public class WorleyNoise
 		Metric = metric;
 		Combiner = combiner;
 		
-		_field = new float[_size*_size];
+		_field = new float[_size * _size];
 		_lcg = new LCGRandom(_seed);
 		_fnv = new FNVHash();
 	}
@@ -41,15 +66,13 @@ public class WorleyNoise
 	
 	private void GeneratePoints()
 	{
-		for(int r=0;r<_size;++r)
-		{
+		for(int r=0; r<_size; ++r)
 			for(int c=0;c<_size;++c)
 			{
 				Vector3 pos = new Vector3((float)c/_size, (float)r/_size, 0.0f);
 				pos*=_zoom;				
 				_field[r*_size+c] = NoiseFunc(pos);
 			}
-		}
 	}
 	
 	public float NoiseFunc(Vector3 pos)
@@ -67,8 +90,7 @@ public class WorleyNoise
 		int evalCubeY = Mathf.FloorToInt(pos.y);
 		int evalCubeZ = Mathf.FloorToInt(pos.z);
 
-		for (int i = -1; i < 2; ++i)
-		{
+		for(int i = -1; i < 2; ++i)
 			for (int j = -1; j < 2; ++j)
 			{
 				for (int k = -1; k < 2; ++k)
@@ -103,33 +125,44 @@ public class WorleyNoise
 					// This is done by repeating steps 1 through 5 above for each neighboring cube
 				}
 			}
-		}
 
 		float ret = _combinerFunc(dist);
-		if(ret < 0) ret = 0;
-		if(ret > 1) ret = 1;
+		if(ret < 0)
+			ret = 0;
+		if(ret > 1)
+			ret = 1;
 		return ret;
 	}
 	
 	#region util_func
 	/// <summary>
-	/// Given a uniformly distributed random number this function returns the number of feature points in a given cube.
+	/// Given a uniformly distributed random number this function returns the number of feature points in a
+	/// given cube.
 	/// </summary>
 	/// <param name="value">a uniformly distributed random number</param>
 	/// <returns>The number of feature points in a cube.</returns>
 	/// <description>
-	/// Generated using mathmatica with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]"
+	/// Generated using mathmatica with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}],
+	/// 20]*2^32]"
 	/// </description>
 	private uint ProbLookup(uint value)
 	{
-		if (value < 393325350) return 1;
-		if (value < 1022645910) return 2;
-		if (value < 1861739990) return 3;
-		if (value < 2700834071) return 4;
-		if (value < 3372109335) return 5;
-		if (value < 3819626178) return 6;
-		if (value < 4075350088) return 7;
-		if (value < 4203212043) return 8;
+		if(value < 393325350)
+			return 1;
+		if(value < 1022645910)
+			return 2;
+		if(value < 1861739990)
+			return 3;
+		if(value < 2700834071)
+			return 4;
+		if(value < 3372109335)
+			return 5;
+		if(value < 3819626178)
+			return 6;
+		if(value < 4075350088)
+			return 7;
+		if(value < 4203212043)
+			return 8;
 		return 9;
 	}
 	
@@ -142,12 +175,14 @@ public class WorleyNoise
 	private void Insert(float[] a, float x)
 	{
 		float tmp;
-		for (int i = a.Length - 1; i >= 0; i--)
+		for(int i = a.Length - 1; i >= 0; i--)
 		{
-			if (x > a[i]) break;
+			if(x > a[i])
+				break;
 			tmp = a[i];
 			a[i] = x;
-			if (i + 1 < a.Length) a[i + 1] = tmp;
+			if(i + 1 < a.Length)
+				a[i + 1] = tmp;
 		}
 	}
 	#endregion
@@ -226,7 +261,7 @@ public class WorleyNoise
 	{
 		get
 		{
-			GeneratePoints ();
+			GeneratePoints();
 			return _field;
 		}
 	}
@@ -254,12 +289,12 @@ public class WorleyNoise
 	{
 		public static float EuclidianSq(Vector3 p1, Vector3 p2)
 		{
-			return (p1-p2).sqrMagnitude;
+			return (p1 - p2).sqrMagnitude;
 		}
 		
 		public static float Euclidian(Vector3 p1, Vector3 p2)
 		{
-			return (p1-p2).magnitude;
+			return (p1 - p2).magnitude;
 		}
 		
 		public static float Manhattan(Vector3 p1, Vector3 p2)
@@ -275,9 +310,20 @@ public class WorleyNoise
 		}
 		
 		//Some rewrites of other funcs.  May or may not be faster
-		private static float Max(float a, float b) { return (a > b)?a:b; }
-		private static float Min(float a, float b) { return (a < b)?a:b; }
-		private static float Abs(float a) { return (a<0)?-a:a; }
+		private static float Max(float a, float b)
+		{
+			return (a > b) ? a : b;
+		}
+
+		private static float Min(float a, float b)
+		{
+			return (a < b) ? a : b;
+		}
+
+		private static float Abs(float a)
+		{
+			return (a < 0) ? -a : a;
+		}
 	}
 	#endregion
 }
