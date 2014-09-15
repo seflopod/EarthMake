@@ -57,7 +57,7 @@ public class FractalMesh
 		mesh.vertices = newVerts;
 		mesh.triangles = newTris;
 		mesh.RecalculateNormals();
-		mesh.tangents = MeshGenerator.CalculateMeshTangents(mesh);
+		mesh.tangents = MeshGenerator.calculateMeshTangents(mesh);
 		mesh.Optimize();
 		return mesh;
 	}

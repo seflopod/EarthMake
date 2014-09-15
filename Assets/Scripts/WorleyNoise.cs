@@ -74,7 +74,8 @@ public class WorleyNoise
 				_field[r*_size+c] = NoiseFunc(pos);
 			}
 	}
-	
+
+	//I have no idea where I acquired this method
 	public float NoiseFunc(Vector3 pos)
 	{
 		//Declare some values for later use

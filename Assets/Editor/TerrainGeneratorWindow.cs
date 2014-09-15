@@ -23,7 +23,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using UnityEditor;
 using UnityEngine;
 using System.IO;
@@ -40,267 +39,387 @@ using System.Text;
 /// </description>
 public class TerrainGeneratorWindow : EditorWindow
 {
-	private float _worleyInf;
-	private float _cloudInf;
-	private int _seed;
-	private int _size;
-	private bool _showAdvOpt;
-	private bool _showNormalOpt;
-	private SerializedObject _normalOpt;
-	private bool _showWorleyOpt;
-	private SerializedObject _worleyOpt;
-	private bool _showCloudOpt;
-	private bool _specCloudStart;
-	private SerializedObject _cloudOpt;
-	private string _param;
-	private Vector2 _scrollPos;
-	private Vector2 _texScrollPos;
-	private TerrainGenerator _gen;
-	private bool _busy;
-	private bool _generated;
-	private Texture2D _image;
+	private static readonly Vector2 MIN_SIZE = new Vector2(576, 384);
+	private static readonly Vector2 MAX_SIZE = new Vector2(3072, 2048);
 
 	//Adds a new menu called "Terrain" and adds an item to it.
 	[MenuItem("Window/Terrain Generator")]
 	public static void ShowWindow()
 	{
 		//Show existing window instance.  If one doesn't exist, make one
-		Rect winPos = new Rect(100, 100, 768, 768);
-		TerrainGeneratorWindow w =
-			(TerrainGeneratorWindow)EditorWindow.GetWindowWithRect<TerrainGeneratorWindow>(winPos, false,
-																					"Terrain Generator v0.8a");
-		w.Init();
+		Rect winPos = new Rect(100f, 100f, MIN_SIZE.x, MIN_SIZE.y);
+		var w = (TerrainGeneratorWindow)EditorWindow.GetWindowWithRect<TerrainGeneratorWindow>(winPos, false, "EarthMake v0.9a", true);
+		w.init();
 	}
+
+	#region texture_tracking_fields
+	private TerrainGenerator tgGenerator;
+	private bool bIsBusy;
+	private bool bIsGenerated;
+	private Texture2D texGenerated;
+	#endregion
+
+	#region serialized_options_fields
+	private bool bShouldShowNormalOptions;
+	private SerializedObject soNormalOptions;
+	private SerializedProperty spNormalSize;
+	private SerializedProperty spNormalMultiplier;
+	private SerializedProperty spNormalSeed;
+	private SerializedProperty spNormalWorleyInf;
+	private SerializedProperty spNormalCloudInf;
+	private SerializedProperty spNormalShowSeams;
+
+	private bool bShouldShowAdvancedOptions;
+	private bool bShouldShowCloudOptions;
+	private bool bCanSpecifyCloudStartValues;
+	private SerializedObject soCloudOptions;
+	private SerializedProperty spCloudUpperLeftStart;
+	private SerializedProperty spCloudLowerLeftStart;
+	private SerializedProperty spCloudLowerRightStart;
+	private SerializedProperty spCloudUpperRightStart;
+
+	private bool bShouldShowWorleyOptions;
+	private SerializedObject soWorleyOptions;
+	private SerializedProperty spWorleyZoomLevel;
+	private SerializedProperty spWorleyMetric;
+	private SerializedProperty spWorleyCombiner;
+	#endregion
+
+	#region other_fields
+	private string mParametersUsed;
+	private Vector2 mScrollPos;
+	private Vector2 mTextureScrollPos;
+	#endregion
 	
-	private void Init()
+	private void init()
 	{
-		this.minSize = 768 * Vector2.one;
-		this.maxSize = 2048 * Vector2.one;
-		_showNormalOpt = true;
-		_normalOpt = new SerializedObject(ScriptableObject.CreateInstance(typeof(NormalOptions)));
-		_showWorleyOpt = false;
-		_worleyOpt = new SerializedObject(ScriptableObject.CreateInstance(typeof(WorleyOptions)));
-		_showCloudOpt = false;
-		_cloudOpt = new SerializedObject(ScriptableObject.CreateInstance(typeof(CloudOptions)));
-		_param = "Parameters Used:\n";
-		_scrollPos = new Vector2();
-		_texScrollPos = new Vector2();
-		_gen = new TerrainGenerator();
-		_generated = false;
-		_gen = new TerrainGenerator();
-		_busy = false;
-		_generated = false;
+		this.minSize = MIN_SIZE;
+		this.maxSize = MAX_SIZE;
+
+		//create options objects
+		soNormalOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(NormalOptions)));
+		soWorleyOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(WorleyOptions)));
+		soCloudOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(CloudOptions)));
+
+		//init normal properties
+		spNormalSize = soNormalOptions.FindProperty("size");
+		spNormalMultiplier = soNormalOptions.FindProperty("multiplier");
+		spNormalSeed = soNormalOptions.FindProperty("seed");
+		spNormalWorleyInf = soNormalOptions.FindProperty("worleyInf");
+		spNormalCloudInf = soNormalOptions.FindProperty("cloudInf");
+		spNormalShowSeams = soNormalOptions.FindProperty("showSeams");
+
+		//init cloud properties
+		spCloudUpperLeftStart = soCloudOptions.FindProperty("upperLeftStart");
+		spCloudLowerLeftStart = soCloudOptions.FindProperty("lowerLeftStart");
+		spCloudLowerRightStart = soCloudOptions.FindProperty("lowerRightStart");
+		spCloudUpperRightStart = soCloudOptions.FindProperty("upperRightStart");
+
+		//init worley properties
+		spWorleyZoomLevel = soWorleyOptions.FindProperty("zoomLevel");
+		spWorleyMetric = soWorleyOptions.FindProperty("metric");
+		spWorleyCombiner = soWorleyOptions.FindProperty("combiner");
+
+		//should we show the options right away?
+		bShouldShowNormalOptions = true;
+		bShouldShowWorleyOptions = false;
+		bShouldShowCloudOptions = false;
+
+		//prep the output
+		mParametersUsed = "Parameters Used:\n";
+		tgGenerator = new TerrainGenerator();
+
+		mScrollPos = new Vector2();
+		mTextureScrollPos = new Vector2();
+
+		bIsGenerated = false;
+		bIsBusy = false;
 	}
 	
 	private void OnGUI()
 	{
 		EditorGUILayout.BeginHorizontal();
-		EditorGUILayout.BeginVertical(GUILayout.MaxWidth(this.minSize.x / 3), GUILayout.ExpandWidth(false));
-		ShowNormalOptions();
-		EditorGUILayout.Space();
-		ShowAdvancedOptions();
-		if(!_busy)
-			ShowGenerateHeightMap();
-		EditorGUILayout.EndVertical();
-		Rect r = EditorGUILayout.BeginVertical();
-		r.x = 0.0f;
-		ShowHeightMapTexture(r);
-		EditorGUILayout.EndVertical();
-		EditorGUILayout.EndHorizontal();
-	}
-	
-	private void ShowNormalOptions()
-	{
-		EditorGUI.indentLevel = 0;
-		_showNormalOpt = EditorGUILayout.Foldout(_showNormalOpt, "Standard Options");
-		if(_showNormalOpt)
 		{
-			ShowSizeSelect();
-			ShowMultiplierSelect();
-			ShowSeedSelect();
-			ShowInfluenceSliders();
-			ShowSeamSelect();
-			_normalOpt.UpdateIfDirtyOrScript();
-		}
-		
-	}
-	
-	private void ShowAdvancedOptions()
-	{
-		EditorGUI.indentLevel = 0;
-		_showAdvOpt = EditorGUILayout.Foldout(_showAdvOpt, "Advanced Options");
-		if(_showAdvOpt)
-		{
-			ShowCloudOptions();
-			ShowWorleyOptions();
-		}
-	}
-	
-	#region normal_opt_disp
-	private void ShowSizeSelect()
-	{
-		EditorGUI.indentLevel = 1;
-		int size = ((NormalOptions)_normalOpt.targetObject).size;
-		
-		size = EditorGUILayout.IntField("Size", size);
-		size = (size < 0) ? -size : size;
-		if(!Mathf.IsPowerOfTwo(size))
-			size = Mathf.NextPowerOfTwo(size);
-		
-		_normalOpt.FindProperty("size").intValue = size;
-		
-		_normalOpt.ApplyModifiedProperties();
-	}
-	
-	private void ShowMultiplierSelect()
-	{
-		EditorGUI.indentLevel = 1;
+			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(this.minSize.x / 3), GUILayout.ExpandWidth(false));
+			{
+				showNormalOptions();
+				showAdvancedOptions();
+				if(!bIsBusy)
+				{
+					showGenerateHeightMapBtn();
+				}
+			}
+			EditorGUILayout.EndVertical();
 
-		EditorGUILayout.PropertyField(_normalOpt.FindProperty("multiplier"), false);
-		float mult = _normalOpt.FindProperty("multiplier").floatValue;
-		if(mult < 0)
-		{
-			mult *= -1;
-			_normalOpt.FindProperty("multiplier").floatValue = mult;
+			Rect r = EditorGUILayout.BeginVertical();
+			{
+				r.x = 0.0f;
+				showTexture(r);
+			}
+			EditorGUILayout.EndVertical();
 		}
-		
-		_normalOpt.ApplyModifiedProperties();
-	}
-	
-	private void ShowSeedSelect()
-	{
-		EditorGUI.indentLevel = 1;
-		int seed = ((NormalOptions)_normalOpt.targetObject).seed;
-		EditorGUILayout.BeginHorizontal();
-		seed = EditorGUILayout.IntField("Seed", seed);
-		if(UnityEngine.GUILayout.Button("Randomize Seed"))
-			seed = (int)LCGRandom.GlobalInstance.Next();
 		EditorGUILayout.EndHorizontal();
+	}
+
+	#region standard_options
+	private void showNormalOptions()
+	{
+		soNormalOptions.Update();
+		bShouldShowNormalOptions = EditorGUILayout.Foldout(bShouldShowNormalOptions, "Standard Options");
+		if(bShouldShowNormalOptions)
+		{
+			EditorGUI.indentLevel++;
+			showSizeSelect();
+			showMultiplierSelect();
+			showSeedSelect();
+			showInfluenceSliders();
+			showSeamSelect();
+			soNormalOptions.UpdateIfDirtyOrScript();
+			EditorGUI.indentLevel--;
+		}
+	}
+
+	private void showSizeSelect()
+	{
+		int curSize = spNormalSize.intValue;
 		
-		_normalOpt.FindProperty("seed").intValue = seed;
-		_normalOpt.ApplyModifiedProperties();
+		curSize = EditorGUILayout.IntField("Size", curSize);
+		curSize = Mathf.Clamp(curSize, 1, 2048);
+
+		if(!Mathf.IsPowerOfTwo(curSize))
+		{	//we are only dealing with power of two textures, so if it doesn't
+			//fit, go to the nearest
+			curSize = Mathf.ClosestPowerOfTwo(curSize);
+		}
+
+		spNormalSize.intValue = curSize;
+		soNormalOptions.ApplyModifiedProperties();
 	}
 	
-	private void ShowInfluenceSliders()
+	private void showMultiplierSelect()
 	{
-		EditorGUI.indentLevel = 1;
-		float worleyInf = _normalOpt.FindProperty("worleyInf").floatValue;
-		float cloudInf = _normalOpt.FindProperty("cloudInf").floatValue;
-		
+		EditorGUILayout.PropertyField(spNormalMultiplier, false);
+		spNormalMultiplier.floatValue = Mathf.Clamp(spNormalMultiplier.floatValue, 0f, Mathf.Infinity);
+
+		soNormalOptions.ApplyModifiedProperties();
+	}
+	
+	private void showSeedSelect()
+	{
+		int curSeed = spNormalSeed.intValue;
+
+		EditorGUILayout.BeginHorizontal();
+		{
+			EditorGUILayout.PropertyField(spNormalSeed, false);
+			if(UnityEngine.GUILayout.Button("Randomize Seed"))
+			{
+				spNormalSeed.intValue = (int)LCGRandom.Instance.Next();
+			}
+		}
+		EditorGUILayout.EndHorizontal();
+		soNormalOptions.ApplyModifiedProperties();
+	}
+	
+	private void showInfluenceSliders()
+	{
+		float worleyInf = spNormalWorleyInf.floatValue;
+		float cloudInf = spNormalCloudInf.floatValue;
+
 		cloudInf = EditorGUILayout.Slider("Cloud Fractal Influence", 1 - worleyInf, 0.0f, 1.0f);
 		worleyInf = EditorGUILayout.Slider("Worley Noise Influence", 1 - cloudInf, 0.0f, 1.0f);
 		
-		_normalOpt.FindProperty("cloudInf").floatValue = cloudInf;
-		_normalOpt.FindProperty("worleyInf").floatValue = worleyInf;
-		
-		_normalOpt.ApplyModifiedProperties();
+		spNormalCloudInf.floatValue = cloudInf;
+		spNormalWorleyInf.floatValue = worleyInf;
+
+		soNormalOptions.ApplyModifiedProperties();
 	}
 	
-	private void ShowSeamSelect()
+	private void showSeamSelect()
 	{
-		EditorGUI.indentLevel = 1;
-		EditorGUILayout.PropertyField(_normalOpt.FindProperty("showSeams"), false);		
-		_normalOpt.ApplyModifiedProperties();
+		spNormalShowSeams.boolValue = EditorGUILayout.ToggleLeft("Show Seams", spNormalShowSeams.boolValue);	
+		soNormalOptions.ApplyModifiedProperties();
 	}
 	#endregion
-	
-	#region adv_opt_disp
-	private void ShowCloudOptions()
-	{
-		EditorGUI.indentLevel = 1;
 
-		_showCloudOpt = EditorGUILayout.Foldout(_showCloudOpt, "Cloud Fractal Options");
-		if(_showCloudOpt)
+	#region advanced_options
+	private void showAdvancedOptions()
+	{
+		bShouldShowAdvancedOptions = EditorGUILayout.Foldout(bShouldShowAdvancedOptions, "Advanced Options");
+		if(bShouldShowAdvancedOptions)
 		{
-			EditorGUI.indentLevel = 2;
-			_specCloudStart = EditorGUILayout.BeginToggleGroup("Specify Start Values", _specCloudStart);
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.Slider(_cloudOpt.FindProperty("upperLeftStart"), 0.0f, 1.0f);
-			if(GUILayout.Button("Random"))
-				_cloudOpt.FindProperty("upperLeftStart").floatValue = (LCGRandom.GlobalInstance.NextPct());
-			EditorGUILayout.EndHorizontal();
-				
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.Slider(_cloudOpt.FindProperty("lowerLeftStart"), 0.0f, 1.0f);
-			if(GUILayout.Button("Random"))
-				_cloudOpt.FindProperty("lowerLeftStart").floatValue = (LCGRandom.GlobalInstance.NextPct());
-			EditorGUILayout.EndHorizontal();
-				
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.Slider(_cloudOpt.FindProperty("lowerRightStart"), 0.0f, 1.0f);
-			if(GUILayout.Button("Random"))
-				_cloudOpt.FindProperty("lowerRightStart").floatValue = (LCGRandom.GlobalInstance.NextPct());
-			EditorGUILayout.EndHorizontal();
-				
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.Slider(_cloudOpt.FindProperty("upperRightStart"), 0.0f, 1.0f);
-			if(GUILayout.Button("Random"))
-				_cloudOpt.FindProperty("upperRightStart").floatValue = (LCGRandom.GlobalInstance.NextPct());
-			EditorGUILayout.EndHorizontal();
+			EditorGUI.indentLevel++;
+			showCloudOptions();
+			showWorleyOptions();
+			EditorGUI.indentLevel--;
+		}
+	}
+
+	/// <summary>
+	/// Shows the cloud options.
+	/// </summary>
+	/// <description>
+	/// The method is a bit...ugly.  This is unavoidable for the way I'm dealing
+	/// with the editor GUI stuff.  Basicall it just shows the ability for the
+	/// user to specify the starting values for each corner of the fractal.
+	/// </description>
+	private void showCloudOptions()
+	{
+		bShouldShowCloudOptions = EditorGUILayout.Foldout(bShouldShowCloudOptions, "Cloud Fractal Options");
+		if(bShouldShowCloudOptions)
+		{
+			EditorGUI.indentLevel++;
+
+			bCanSpecifyCloudStartValues = EditorGUILayout.BeginToggleGroup("Specify Start Values", bCanSpecifyCloudStartValues);
+			{
+				float tmp;
+				EditorGUILayout.BeginHorizontal();
+				{
+					EditorGUILayout.BeginVertical();
+					{
+						EditorGUILayout.LabelField("Upper Left Start");
+						EditorGUILayout.BeginHorizontal();
+						{
+							tmp = spCloudUpperLeftStart.floatValue;
+							tmp = Mathf.Clamp01(EditorGUILayout.FloatField(tmp));
+							if(GUILayout.Button("Random"))
+							{
+								tmp = LCGRandom.Instance.NextPct();
+							}
+							spCloudUpperLeftStart.floatValue = tmp;
+						}
+						EditorGUILayout.EndHorizontal();
+					}
+					EditorGUILayout.EndVertical();
+
+					EditorGUILayout.BeginVertical();
+					{
+						EditorGUILayout.LabelField("Upper Right Start");
+						EditorGUILayout.BeginHorizontal();
+						{
+							tmp = spCloudUpperRightStart.floatValue;
+							tmp = Mathf.Clamp01(EditorGUILayout.FloatField(tmp));
+							if(GUILayout.Button("Random"))
+							{
+								tmp = LCGRandom.Instance.NextPct();
+							}
+							spCloudUpperRightStart.floatValue = tmp;
+						}
+						EditorGUILayout.EndHorizontal();
+					}
+					EditorGUILayout.EndVertical();
+				}
+				EditorGUILayout.EndHorizontal();
+					
+				EditorGUILayout.BeginHorizontal();
+				{
+					EditorGUILayout.BeginVertical();
+					{
+						EditorGUILayout.LabelField("Lower Left Start");
+						EditorGUILayout.BeginHorizontal();
+						{
+							tmp = spCloudLowerLeftStart.floatValue;
+							tmp = Mathf.Clamp01(EditorGUILayout.FloatField(tmp));
+							if(GUILayout.Button("Random"))
+							{
+								tmp = LCGRandom.Instance.NextPct();
+							}
+							spCloudLowerLeftStart.floatValue = tmp;
+						}
+						EditorGUILayout.EndHorizontal();
+					}
+					EditorGUILayout.EndVertical();
+					
+					EditorGUILayout.BeginVertical();
+					{
+						EditorGUILayout.LabelField("Lower Right Start");
+						EditorGUILayout.BeginHorizontal();
+						{
+							tmp = spCloudLowerRightStart.floatValue;
+							tmp = Mathf.Clamp01(EditorGUILayout.FloatField(tmp));
+							if(GUILayout.Button("Random"))
+							{
+								tmp = LCGRandom.Instance.NextPct();
+							}
+							spCloudLowerRightStart.floatValue = tmp;
+						}
+						EditorGUILayout.EndHorizontal();
+					}
+					EditorGUILayout.EndVertical();
+				}
+				EditorGUILayout.EndHorizontal();
+			}
 			EditorGUILayout.EndToggleGroup();
 			
-			_cloudOpt.ApplyModifiedProperties();
-			_cloudOpt.UpdateIfDirtyOrScript();
+			soCloudOptions.ApplyModifiedProperties();
+			soCloudOptions.UpdateIfDirtyOrScript();
+			EditorGUI.indentLevel--;
 		}
 	}
 	
-	private void ShowWorleyOptions()
+	private void showWorleyOptions()
 	{
-		EditorGUI.indentLevel = 1;
-		_showWorleyOpt = EditorGUILayout.Foldout(_showWorleyOpt, "Worley Noise Options");
-		if(_showWorleyOpt)
+		bShouldShowWorleyOptions = EditorGUILayout.Foldout(bShouldShowWorleyOptions, "Worley Noise Options");
+		if(bShouldShowWorleyOptions)
 		{
-			EditorGUI.indentLevel = 2;
-			EditorGUILayout.Slider(_worleyOpt.FindProperty("zoomLevel"), 0.5f, 20.0f);
-			EditorGUILayout.PropertyField(_worleyOpt.FindProperty("metric"), false);
-			EditorGUILayout.PropertyField(_worleyOpt.FindProperty("combiner"), false);
-			_worleyOpt.ApplyModifiedProperties();
-			_worleyOpt.UpdateIfDirtyOrScript();
+			EditorGUI.indentLevel++;
+
+			EditorGUILayout.Slider(spWorleyZoomLevel, 0.5f, 20.0f);
+			EditorGUILayout.PropertyField(spWorleyMetric, false);
+			EditorGUILayout.PropertyField(spWorleyCombiner, false);
+
+			soWorleyOptions.ApplyModifiedProperties();
+			soWorleyOptions.UpdateIfDirtyOrScript();
+			EditorGUI.indentLevel--;
 		}
 	}
 	#endregion
 	
 	#region other_disp
-	private void ShowGenerateHeightMap()
+	private void showGenerateHeightMapBtn()
 	{
+		bool clicked = false, exportPNG = false;
 		EditorGUILayout.BeginHorizontal();
-		bool clicked = GUILayout.Button("Generate Heightmap");
-		bool exportPNG = false;
-		if(_generated)
-			exportPNG = GUILayout.Button("Save As PNG");
-		EditorGUILayout.EndHorizontal();
-		if(!_busy && clicked)
 		{
-			_busy = true;
-			
-			_gen.NormalOpt = (NormalOptions)_normalOpt.targetObject;
-			_gen.CloudOpt = (CloudOptions)_cloudOpt.targetObject;
-			_gen.WorleyOpt = (WorleyOptions)_worleyOpt.targetObject;
-			
-			_param = "Parameters Used:\n";
-			_param += _gen.NormalOpt;
-			_param += "\n";
-			_param += _gen.CloudOpt;
-			_param += "\n";
-			_param += _gen.WorleyOpt;
-			
-			_gen.CreateNewHeightMap();
-			_image = _gen.GetAsTexture2D();
-			
-			_generated = true;
-			_busy = false;
+			clicked = GUILayout.Button("Generate Heightmap");
+			if(bIsGenerated)
+			{
+				exportPNG = GUILayout.Button("Save As PNG");
+			}
 		}
-		_scrollPos = EditorGUILayout.BeginScrollView(_scrollPos, false, true);
-		GUILayout.TextArea(_param);
+		EditorGUILayout.EndHorizontal();
+
+		if(!bIsBusy && clicked)
+		{
+			bIsBusy = true;
+			
+			tgGenerator.NormalOpt = (NormalOptions)soNormalOptions.targetObject;
+			tgGenerator.CloudOpt = (CloudOptions)soCloudOptions.targetObject;
+			tgGenerator.WorleyOpt = (WorleyOptions)soWorleyOptions.targetObject;
+			
+			mParametersUsed = "Parameters Used:\n";
+			mParametersUsed += tgGenerator.NormalOpt;
+			mParametersUsed += "\n";
+			mParametersUsed += tgGenerator.CloudOpt;
+			mParametersUsed += "\n";
+			mParametersUsed += tgGenerator.WorleyOpt;
+			
+			tgGenerator.CreateNewHeightMap();
+			texGenerated = tgGenerator.GetAsTexture2D();
+			
+			bIsGenerated = true;
+			bIsBusy = false;
+		}
+		mScrollPos = EditorGUILayout.BeginScrollView(mScrollPos, false, true);
+		GUILayout.TextArea(mParametersUsed);
 		EditorGUILayout.EndScrollView();
 		
-		if(!_busy && exportPNG)
+		if(!bIsBusy && exportPNG)
 		{
-			_busy = true;
-			File.WriteAllBytes("texture.png", _image.EncodeToPNG());
-			HeightMapFileIO.Write("all_data", (NormalOptions)_normalOpt.targetObject,
-									(CloudOptions)_cloudOpt.targetObject,
-									(WorleyOptions)_worleyOpt.targetObject, _image);
+			bIsBusy = true;
+			File.WriteAllBytes("texture.png", texGenerated.EncodeToPNG());
+			HeightMapFileIO.Write("all_data", (NormalOptions)soNormalOptions.targetObject,
+									(CloudOptions)soCloudOptions.targetObject,
+									(WorleyOptions)soWorleyOptions.targetObject, texGenerated);
 			NormalOptions no = ScriptableObject.CreateInstance<NormalOptions>();
 			CloudOptions co = ScriptableObject.CreateInstance<CloudOptions>();
 			WorleyOptions wo = ScriptableObject.CreateInstance<WorleyOptions>();
@@ -308,19 +427,25 @@ public class TerrainGeneratorWindow : EditorWindow
 			HeightMapFileIO.Read("all_data.emb", ref no, ref co, ref wo, ref t);
 			Debug.Log(no + "\n\n" + co + "\n\n" + wo);
 			File.WriteAllBytes("new_texture.png", t.EncodeToPNG());
-			_busy = false;
+			bIsBusy = false;
 		}
 	}
 	
-	private void ShowHeightMapTexture(Rect bounds)
+	private void showTexture(Rect bounds)
 	{
-		if(_generated)
-		{
-			float s = Mathf.Max(Mathf.Max(2 * this.minSize.x / 3, bounds.width), _image.width);
-			bounds.width = s;
-			bounds.height = s;
-			_texScrollPos = EditorGUILayout.BeginScrollView(_texScrollPos, true, true);
-			EditorGUI.DrawPreviewTexture(bounds, _image, null, ScaleMode.ScaleToFit);
+		if(bIsGenerated)
+		{	//if the texture has been generated, then show it.
+
+			//the size of each side is the largest between passed bounds width,
+			//2/3 of the window and the texture width.
+			float s = Mathf.Max(Mathf.Max(2 * this.minSize.x / 3, bounds.width), texGenerated.width);
+			bounds.width = s / 2;
+			bounds.height = s / 2;
+			mTextureScrollPos = EditorGUILayout.BeginScrollView(mTextureScrollPos, true, true);
+
+			//draw the texture and scale it to fit the bounds we have.
+			EditorGUI.DrawPreviewTexture(bounds, texGenerated, null, ScaleMode.ScaleToFit);
+
 			EditorGUILayout.EndScrollView();
 		}
 	}

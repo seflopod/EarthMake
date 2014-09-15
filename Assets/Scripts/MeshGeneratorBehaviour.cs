@@ -10,8 +10,8 @@ public class MeshGeneratorBehaviour : MonoBehaviour
 	public float multiplier = 1.0f;
 	public bool randomSeed = false;
 	public uint seed = 0;
-	// Use this for initialization
-	void Start ()
+
+	private void Start ()
 	{
 		if(randomSeed)
 			seed = (uint)Random.Range(0, 10000);

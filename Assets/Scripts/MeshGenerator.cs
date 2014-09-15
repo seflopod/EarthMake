@@ -13,7 +13,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -51,22 +50,31 @@ public static class MeshGenerator
 		List<Vector3> nrmlLst = new List<Vector3>();
 		List<Vector2> uvLst = new List<Vector2>();
 		List<int> triLst = new List<int>();
-		
+
+		//create the verts for the mesh.
 		for(float z=zMax; z>=zMin; --z)
+		{
 			for(float x=xMax; x>=xMin; --x)
+			{
 				allVerts.Add(new Vector3(x, 0.0f, z));
+			}
+		}
 		
 		if(showSeams)
-			BuildListsRough(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		{
+			buildListsRough(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		}
 		else
-			BuildListsSmooth(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		{
+			buildListsSmooth(height, width, ref allVerts, ref vertLst, ref nrmlLst, ref uvLst, ref triLst);
+		}
 		
 		Mesh ret = new Mesh();
 		ret.vertices = vertLst.ToArray();
 		ret.triangles = triLst.ToArray();
 		ret.normals = nrmlLst.ToArray();
 		ret.uv = uvLst.ToArray();
-		ret.tangents = CalculateMeshTangents(ret);
+		ret.tangents = calculateMeshTangents(ret);
 		return ret;
 	}
 	
@@ -74,8 +82,18 @@ public static class MeshGenerator
 	{
 		return CreateNewMeshPlane(height, width, false);
 	}
-	
-	private static void BuildListsSmooth(uint height, uint width,
+
+	/// <summary>
+	/// Builds the vert, normal, uv, and tri lists for a mesh that is "smooth".
+	/// </summary>
+	/// <param name="height">Height.</param>
+	/// <param name="width">Width.</param>
+	/// <param name="allVerts">All verts.</param>
+	/// <param name="vertLst">Vert lst.</param>
+	/// <param name="nrmlLst">Nrml lst.</param>
+	/// <param name="uvLst">Uv lst.</param>
+	/// <param name="triLst">Tri lst.</param>
+	private static void buildListsSmooth(uint height, uint width,
 													ref List<Vector3> allVerts,
 													ref List<Vector3> vertLst,
 													ref List<Vector3> nrmlLst,
@@ -84,14 +102,15 @@ public static class MeshGenerator
 	{
 		vertLst = allVerts;
 		for(int r=0; r<height; ++r)
-			for(int c=0;c<width;++c)
+		{
+			for(int c=0; c<width; ++c)
 			{
 				int tl = r * (int)(height + 1) + c;
 				int tr = tl + 1;
 				int bl = tl + (int)height + 1;
 				int br = bl + 1;
 				
-				if(((r+c) & 1) == 0) //r+c is even
+				if(((r + c) & 1) == 0) //r+c is even
 				{
 					/*
 					 * Do Bottom-Left Triangle
@@ -124,15 +143,34 @@ public static class MeshGenerator
 					triLst.Add(br);
 				}
 			}
+		}
 		
 		foreach(Vector3 vert in vertLst)
 		{
-			uvLst.Add(new Vector2(vert.x, vert.z));
+			//normals are calculated later, for now just use up.
 			nrmlLst.Add(Vector3.up);
+
+			//all uvs are based on the vert
+			uvLst.Add(new Vector2(vert.x, vert.z));
 		}
 	}
-	
-	private static void BuildListsRough(uint height, uint width,
+
+	/// <summary>
+	/// Builds the vert, normal, uv, and tri lists for a mesh that is "rough".
+	/// </summary>
+	/// <param name="height">Height.</param>
+	/// <param name="width">Width.</param>
+	/// <param name="allVerts">All verts.</param>
+	/// <param name="vertLst">Vert lst.</param>
+	/// <param name="nrmlLst">Nrml lst.</param>
+	/// <param name="uvLst">Uv lst.</param>
+	/// <param name="triLst">Tri lst.</param>
+	/// <description>
+	/// Since the mesh needs to show its seams, we will create duplicate verts
+	/// for every triangle.  This will matter when calculating the normals,
+	/// as the normal is based on all faces that use a given vert.
+	/// </description>
+	private static void buildListsRough(uint height, uint width,
 													ref List<Vector3> allVerts,
 													ref List<Vector3> vertLst,
 													ref List<Vector3> nrmlLst,
@@ -141,102 +179,89 @@ public static class MeshGenerator
 	{
 		int nTris = 0;
 		for(int r=0; r<height; ++r)
-			for(int c=0;c<width;++c)
+		{
+			for(int c=0; c<width; ++c)
 			{
 				int tl = r * (int)(height + 1) + c;
 				int tr = tl + 1;
 				int bl = tl + (int)height + 1;
 				int br = bl + 1;
 				
-				if(((r+c) & 1) == 0) //r+c is even
+				if(((r + c) & 1) == 0) //r+c is even
 				{
 					/*
 					 * Do Bottom-Left Triangle
 					 */
-					vertLst.Add (allVerts[tl]);
-					vertLst.Add (allVerts[bl]);
-					vertLst.Add (allVerts[br]);
-					
-					//normal and tri index for all three new vertices
-					for(int i=0;i<3;++i)
-					{
-						nrmlLst.Add (Vector3.up);
-						triLst.Add(nTris++);
-					}
+					vertLst.Add(allVerts[tl]);
+					vertLst.Add(allVerts[bl]);
+					vertLst.Add(allVerts[br]);
 					
 					//add uvs
-					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
-					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
-					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
+					uvLst.Add(new Vector2(allVerts[tl].x, allVerts[tl].z));
+					uvLst.Add(new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add(new Vector2(allVerts[br].x, allVerts[br].z));
 					
 					/*
 					 * Do Upper-Right Triangle
 					 */
-					vertLst.Add (allVerts[br]);
-					vertLst.Add (allVerts[tr]);
-					vertLst.Add (allVerts[tl]);
-					
-					//normal and tri index for all three new vertices
-					for(int i=0;i<3;++i)
-					{
-						nrmlLst.Add (Vector3.up);
-						triLst.Add(nTris++);
-					}
+					vertLst.Add(allVerts[br]);
+					vertLst.Add(allVerts[tr]);
+					vertLst.Add(allVerts[tl]);
 					
 					//add uvs
-					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
-					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
-					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
+					uvLst.Add(new Vector2(allVerts[br].x, allVerts[br].z));
+					uvLst.Add(new Vector2(allVerts[tr].x, allVerts[tr].z));
+					uvLst.Add(new Vector2(allVerts[tl].x, allVerts[tl].z));
 				}
 				else //r+c is odd
 				{
 					/*
 					 * Do Upper-Left Triangle
 					 */
-					vertLst.Add (allVerts[tl]);
-					vertLst.Add (allVerts[bl]);
-					vertLst.Add (allVerts[tr]);
-					
-					//normal and tri index for all three new vertices
-					for(int i=0;i<3;++i)
-					{
-						nrmlLst.Add (Vector3.up);
-						triLst.Add(nTris++);
-					}
+					vertLst.Add(allVerts[tl]);
+					vertLst.Add(allVerts[bl]);
+					vertLst.Add(allVerts[tr]);
 					
 					//add uvs
-					uvLst.Add (new Vector2(allVerts[tl].x, allVerts[tl].z));
-					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
-					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
+					uvLst.Add(new Vector2(allVerts[tl].x, allVerts[tl].z));
+					uvLst.Add(new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add(new Vector2(allVerts[tr].x, allVerts[tr].z));
 					
 					/*
 					 * Do Bottom-Right Triangle
 					 */
-					vertLst.Add (allVerts[tr]);
-					vertLst.Add (allVerts[bl]);
-					vertLst.Add (allVerts[br]);
-					
-					//normal and tri index for all three new vertices
-					for(int i=0;i<3;++i)
-					{
-						nrmlLst.Add (Vector3.up);
-						triLst.Add(nTris++);
-					}
+					vertLst.Add(allVerts[tr]);
+					vertLst.Add(allVerts[bl]);
+					vertLst.Add(allVerts[br]);
 					
 					//add uvs
-					uvLst.Add (new Vector2(allVerts[tr].x, allVerts[tr].z));
-					uvLst.Add (new Vector2(allVerts[bl].x, allVerts[bl].z));
-					uvLst.Add (new Vector2(allVerts[br].x, allVerts[br].z));
+					uvLst.Add(new Vector2(allVerts[tr].x, allVerts[tr].z));
+					uvLst.Add(new Vector2(allVerts[bl].x, allVerts[bl].z));
+					uvLst.Add(new Vector2(allVerts[br].x, allVerts[br].z));
+				}
+
+				//normal and tri index for all six new vertices
+				for(int i=0; i<6; ++i)
+				{
+					//we'll adjust the normals later, for now just use Up
+					nrmlLst.Add(Vector3.up);
+
+					//since we just added the verts for the next two tris, we
+					//only need to use the last six indices.
+					triLst.Add(nTris++);
 				}
 			}
+		}
 	}
 	
-	private static void MapFaceToVert(ref Dictionary<int, HashSet<int>> vertsToFaces, int vertIdx, int faceIdx)
+	private static void mapFaceToVert(ref Dictionary<int, HashSet<int>> vertsToFaces, int vertIdx, int faceIdx)
 	{
 		HashSet<int> faceSet;
 		vertsToFaces.TryGetValue(vertIdx, out faceSet);
-		if(faceSet == null) //did not find vertex
+		if(faceSet == null)
+		{ //did not find vertex
 			faceSet = new HashSet<int>();
+		}
 		
 		//no matter what, add the faceIdx to the face set and create new
 		//Dictionary entry
@@ -244,7 +269,7 @@ public static class MeshGenerator
 		vertsToFaces.Add(vertIdx, faceSet);
 	}
 	
-	public static Vector4[] CalculateMeshTangents(Mesh mesh)
+	public static Vector4[] calculateMeshTangents(Mesh mesh)
 	{
 		//speed up math by copying the mesh arrays
 		int[] triangles = mesh.triangles;

@@ -37,7 +37,7 @@ public class LCGRandom
 {
 	private static LCGRandom _instance = null;
 	
-	public static LCGRandom GlobalInstance
+	public static LCGRandom Instance
 	{
 		get
 		{
