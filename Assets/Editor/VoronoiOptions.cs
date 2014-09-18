@@ -28,45 +28,49 @@ using UnityEditor;
 using UnityEngine;
 
 [System.Serializable]
-public class WorleyOptions : ScriptableObject
+public class VoronoiOptions : ScriptableObject
 {
-	public WorleyNoise.DistanceMetric metric;
-	public WorleyNoise.CombineType combiner;
-	public float zoomLevel;
-	
+	public DistanceFuncs.DistanceMetric metric;
+	public CombinerFunctions.CombineFunction combiner;
+	public int numberOfFeaturePoints;
+	public int numberOfSubregions;
+
 	public void OnEnable()
 	{
-		metric = WorleyNoise.DistanceMetric.EuclidianSq;
-		combiner = WorleyNoise.CombineType.D2MinusD1;
-		zoomLevel = 5.0f;
+		metric = DistanceFuncs.DistanceMetric.EuclidianSq;
+		combiner = CombinerFunctions.CombineFunction.D2MinusD1;
+		numberOfFeaturePoints = 10;
+		numberOfSubregions = 9;
 	}
 	
 	public override string ToString()
 	{
 		return string.Format("[WorleyOptions]\n\tDistance Metric: {0}\n\t" +
 								"Combine Type: {1}\n\t" +
-								"Zoom Level: {2:0.0}",
-								metric, combiner, zoomLevel);
+								"Feature Points: {2}\n\t" +
+								"Subregions: {3}",
+								metric, combiner, numberOfFeaturePoints, numberOfSubregions);
 	}
 	
 	public override int GetHashCode()
 	{
 		FNVHash fnv = new FNVHash();
-		return (int)fnv.Hash((uint)metric, (uint)combiner, (uint)zoomLevel);
+		return (int)fnv.Hash((uint)metric, (uint)combiner, (uint)(numberOfFeaturePoints^numberOfSubregions));
 	}
 	
 	public override bool Equals(object o)
 	{
-		return (this == (WorleyOptions)o);
+		return (this == (VoronoiOptions)o);
 	}
 	
-	public static bool operator==(WorleyOptions a, WorleyOptions b)
+	public static bool operator==(VoronoiOptions a, VoronoiOptions b)
 	{
 		return (a.metric == b.metric && a.combiner == b.combiner &&
-				a.zoomLevel == b.zoomLevel);
+				a.numberOfFeaturePoints == b.numberOfFeaturePoints &&
+		        a.numberOfSubregions == b.numberOfSubregions);
 	}
 	
-	public static bool operator!=(WorleyOptions a, WorleyOptions b)
+	public static bool operator!=(VoronoiOptions a, VoronoiOptions b)
 	{
 		return !(a == b);
 	}

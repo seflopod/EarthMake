@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class FractalMesh
 {
 	private CloudFractal _cfGen;
-	private WorleyNoise _wnGen;
+	private VoronoiDiagram _vnGen;
 	private uint _seed;
 	private int _size;
 	private float _mult;
@@ -18,13 +18,13 @@ public class FractalMesh
 		_mult = mult;
 		_cfGen = new CloudFractal(_size);
 		_cfGen.Seed = _seed++;
-		_wnGen = new WorleyNoise(_size, 5.0f, _seed, WorleyNoise.DistanceMetric.EuclidianSq, WorleyNoise.CombineType.D2MinusD1);
+		_vnGen = new WorleyNoise(_size, 5.0f, _seed, WorleyNoise.DistanceMetric.EuclidianSq, WorleyNoise.CombineType.D2MinusD1);
 		_showSeams = showSeams;
 	}
 	
 	public Mesh CreateNewMesh()
 	{
-		float[] worley = _wnGen.NewField;
+		float[] worley = _vnGen.Field;
 		float[] cloud = _cfGen.NewField;
 		float[] points = new float[worley.Length];
 		for(int i=0;i<points.Length;++i)

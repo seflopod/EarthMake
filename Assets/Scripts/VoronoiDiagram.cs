@@ -68,9 +68,9 @@ public class VoronoiDiagram
 		}
 	}
 
-	public Vector3[] GeneratePoints()
+	public float[] GeneratePoints()
 	{
-		aField = new Vector3[mSize * mSize];
+		aField = new float[mSize * mSize];
 		generateFeaturePoints();
 
 		for(int i=0;i<aFeaturePoints.Length;++i)
@@ -87,17 +87,17 @@ public class VoronoiDiagram
 				//create the distance array
 				for(int j=0;j<distances.Length;++j)
 				{
-					distances[j] = delDistanceFunc(aField[aFeaturePoints[j]], curPoint);
+					Vector3 newPoint = new Vector3(aFeaturePoints[j]%mSize, 0f, aFeaturePoints[j]/mSize);
+					distances[j] = delDistanceFunc(newPoint, curPoint);
 				}
 				Array.Sort(distances);
-				curPoint.y = delCombiningFunc(distances);
-				aField[r*mSize+c] = curPoint;
+				aField[r*mSize+c] = delCombiningFunc(distances);
 			}
 		}
 		return aField;
 	}
 
-	public Vector3[] Points
+	public float[] Field
 	{
 		get
 		{

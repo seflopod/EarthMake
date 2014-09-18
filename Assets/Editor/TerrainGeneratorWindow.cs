@@ -78,11 +78,12 @@ public class TerrainGeneratorWindow : EditorWindow
 	private SerializedProperty spCloudLowerRightStart;
 	private SerializedProperty spCloudUpperRightStart;
 
-	private bool bShouldShowWorleyOptions;
-	private SerializedObject soWorleyOptions;
-	private SerializedProperty spWorleyZoomLevel;
-	private SerializedProperty spWorleyMetric;
-	private SerializedProperty spWorleyCombiner;
+	private bool bShouldShowVoronoiOptions;
+	private SerializedObject soVoronoiOptions;
+	private SerializedProperty spVoronoiMetric;
+	private SerializedProperty spVoronoiCombiner;
+	private SerializedProperty spVoronoiFeaturePoints;
+	private SerializedProperty spVoronoiSubregions;
 	#endregion
 
 	#region other_fields
@@ -98,8 +99,8 @@ public class TerrainGeneratorWindow : EditorWindow
 
 		//create options objects
 		soNormalOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(NormalOptions)));
-		soWorleyOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(WorleyOptions)));
 		soCloudOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(CloudOptions)));
+		soVoronoiOptions = new SerializedObject(ScriptableObject.CreateInstance(typeof(VoronoiOptions)));
 
 		//init normal properties
 		spNormalSize = soNormalOptions.FindProperty("size");
@@ -115,15 +116,18 @@ public class TerrainGeneratorWindow : EditorWindow
 		spCloudLowerRightStart = soCloudOptions.FindProperty("lowerRightStart");
 		spCloudUpperRightStart = soCloudOptions.FindProperty("upperRightStart");
 
-		//init worley properties
-		spWorleyZoomLevel = soWorleyOptions.FindProperty("zoomLevel");
-		spWorleyMetric = soWorleyOptions.FindProperty("metric");
-		spWorleyCombiner = soWorleyOptions.FindProperty("combiner");
+		//init voronoi properties
+		spVoronoiMetric = soVoronoiOptions.FindProperty("metric");
+		spVoronoiCombiner = soVoronoiOptions.FindProperty("combiner");
+		spVoronoiFeaturePoints = soVoronoiOptions.FindProperty("numberOfFeaturePoints");
+		spVoronoiSubregions = soVoronoiOptions.FindProperty("numberOfSubregions");
 
 		//should we show the options right away?
 		bShouldShowNormalOptions = true;
-		bShouldShowWorleyOptions = false;
 		bShouldShowCloudOptions = false;
+		bShouldShowVoronoiOptions = false;
+
+
 
 		//prep the output
 		mParametersUsed = "Parameters Used:\n";
@@ -249,7 +253,7 @@ public class TerrainGeneratorWindow : EditorWindow
 		{
 			EditorGUI.indentLevel++;
 			showCloudOptions();
-			showWorleyOptions();
+			showVoronoiOptions();
 			EditorGUI.indentLevel--;
 		}
 	}
@@ -356,19 +360,20 @@ public class TerrainGeneratorWindow : EditorWindow
 		}
 	}
 	
-	private void showWorleyOptions()
+	private void showVoronoiOptions()
 	{
-		bShouldShowWorleyOptions = EditorGUILayout.Foldout(bShouldShowWorleyOptions, "Worley Noise Options");
-		if(bShouldShowWorleyOptions)
+		bShouldShowVoronoiOptions = EditorGUILayout.Foldout(bShouldShowVoronoiOptions, "Voronoi Map Options");
+		if(bShouldShowVoronoiOptions)
 		{
 			EditorGUI.indentLevel++;
 
-			EditorGUILayout.Slider(spWorleyZoomLevel, 0.5f, 20.0f);
-			EditorGUILayout.PropertyField(spWorleyMetric, false);
-			EditorGUILayout.PropertyField(spWorleyCombiner, false);
+			EditorGUILayout.PropertyField(spVoronoiMetric, false);
+			EditorGUILayout.PropertyField(spVoronoiCombiner, false);
+			EditorGUILayout.PropertyField(spVoronoiFeaturePoints, false);
+			EditorGUILayout.PropertyField(spVoronoiSubregions, false);
 
-			soWorleyOptions.ApplyModifiedProperties();
-			soWorleyOptions.UpdateIfDirtyOrScript();
+			soVoronoiOptions.ApplyModifiedProperties();
+			soVoronoiOptions.UpdateIfDirtyOrScript();
 			EditorGUI.indentLevel--;
 		}
 	}
@@ -394,7 +399,7 @@ public class TerrainGeneratorWindow : EditorWindow
 			
 			tgGenerator.NormalOpt = (NormalOptions)soNormalOptions.targetObject;
 			tgGenerator.CloudOpt = (CloudOptions)soCloudOptions.targetObject;
-			tgGenerator.WorleyOpt = (WorleyOptions)soWorleyOptions.targetObject;
+			tgGenerator.WorleyOpt = (VoronoiOptions)soVoronoiOptions.targetObject;
 			
 			mParametersUsed = "Parameters Used:\n";
 			mParametersUsed += tgGenerator.NormalOpt;
@@ -419,7 +424,7 @@ public class TerrainGeneratorWindow : EditorWindow
 			File.WriteAllBytes("texture.png", texGenerated.EncodeToPNG());
 			HeightMapFileIO.Write("all_data", (NormalOptions)soNormalOptions.targetObject,
 									(CloudOptions)soCloudOptions.targetObject,
-									(WorleyOptions)soWorleyOptions.targetObject, texGenerated);
+			                      (VoronoiOptions)soVoronoiOptions.targetObject, texGenerated);
 			NormalOptions no = ScriptableObject.CreateInstance<NormalOptions>();
 			CloudOptions co = ScriptableObject.CreateInstance<CloudOptions>();
 			WorleyOptions wo = ScriptableObject.CreateInstance<WorleyOptions>();
