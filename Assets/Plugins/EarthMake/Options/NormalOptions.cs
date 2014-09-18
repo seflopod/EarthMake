@@ -33,7 +33,7 @@ public class NormalOptions : ScriptableObject
 	public int size;
 	public float multiplier;
 	public int seed;
-	public float worleyInf;
+	public float voronoiInf;
 	public float cloudInf;
 	public bool showSeams;
 	
@@ -45,7 +45,7 @@ public class NormalOptions : ScriptableObject
 	/// </description>
 	public void OnEnable()
 	{
-		worleyInf = 0.33f;
+		voronoiInf = 0.33f;
 		cloudInf = 0.67f;
 		seed = 0;
 		size = 16;
@@ -59,16 +59,16 @@ public class NormalOptions : ScriptableObject
 								"Multiplier: {1}\n\t" +
 								"Seed: {2}\n\t" +
 								"Cloud Fractal Influence: {3:0.0%}\n\t" +
-								"Worley Noise Influence: {4:0.0%}\n\t" +
+								"Voronoi Diagram Influence: {4:0.0%}\n\t" +
 								"Show Seams: {5}",
-								size, multiplier, seed, cloudInf, worleyInf,
+								size, multiplier, seed, cloudInf, voronoiInf,
 								showSeams);
 	}
 	
 	public override int GetHashCode()
 	{
 		FNVHash fnv = new FNVHash();
-		uint floats = fnv.Hash((uint)multiplier, (uint)worleyInf,
+		uint floats = fnv.Hash((uint)multiplier, (uint)voronoiInf,
 						(uint)cloudInf);
 		uint ints = fnv.Hash((uint)size, (uint)seed, (uint)seed);
 		return (int)fnv.Hash(floats, ints, (uint)seed);
@@ -82,7 +82,7 @@ public class NormalOptions : ScriptableObject
 	public static bool operator==(NormalOptions a, NormalOptions b)
 	{
 		return (a.size == b.size && a.multiplier == b.multiplier &&
-				a.seed == b.seed && a.worleyInf == b. worleyInf &&
+				a.seed == b.seed && a.voronoiInf == b. voronoiInf &&
 				a.cloudInf == b.cloudInf && a.showSeams == b.showSeams);
 	}
 	

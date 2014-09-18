@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class FractalMesh
 {
-	private CloudFractal _cfGen;
+	/*private CloudFractal _cfGen;
 	private VoronoiDiagram _vnGen;
 	private uint _seed;
 	private int _size;
@@ -60,5 +60,5 @@ public class FractalMesh
 		mesh.tangents = MeshGenerator.calculateMeshTangents(mesh);
 		mesh.Optimize();
 		return mesh;
-	}
+	}*/
 }

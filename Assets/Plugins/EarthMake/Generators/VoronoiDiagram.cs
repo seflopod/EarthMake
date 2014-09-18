@@ -27,6 +27,18 @@ public class VoronoiDiagram
 		aFeaturePoints = new int[mNumFeaturePoints];
 	}
 
+	public VoronoiDiagram(int size, int seed, VoronoiOptions options)
+	{
+		mSize = size;
+		delDistanceFunc = DistanceFuncs.GetDistanceFunction(options.metric);
+		delCombiningFunc = CombinerFunctions.GetFunction(options.combiner);
+		mNumFeaturePoints = options.numberOfFeaturePoints;
+		mNumSubregions = options.numberOfSubregions;
+
+		aFeaturePoints = new int[mNumFeaturePoints];
+		mRNG = new LCGRandom(seed);
+	}
+
 	private void generateFeaturePoints()
 	{
 		uint subRegionWidth = (uint)Mathf.Sqrt(mNumSubregions);
@@ -68,7 +80,7 @@ public class VoronoiDiagram
 		}
 	}
 
-	public float[] GeneratePoints()
+	public float[] GetNewField()
 	{
 		aField = new float[mSize * mSize];
 		generateFeaturePoints();
@@ -87,8 +99,8 @@ public class VoronoiDiagram
 				//create the distance array
 				for(int j=0;j<distances.Length;++j)
 				{
-					Vector3 newPoint = new Vector3(aFeaturePoints[j]%mSize, 0f, aFeaturePoints[j]/mSize);
-					distances[j] = delDistanceFunc(newPoint, curPoint);
+					Vector3 newPoint = new Vector3((aFeaturePoints[j]%mSize) / (float)mSize, (aFeaturePoints[j]/mSize) / (float)mSize, 0f);
+					distances[j] = 5*delDistanceFunc(newPoint, curPoint);
 				}
 				Array.Sort(distances);
 				aField[r*mSize+c] = delCombiningFunc(distances);
@@ -103,9 +115,21 @@ public class VoronoiDiagram
 		{
 			if(aField.Length == 0)
 			{
-				GeneratePoints();
+				GetNewField();
 			}
 			return aField;
 		}
+	}
+
+	public int Seed
+	{
+		get { return (int)mRNG.Seed; }
+		set { mRNG.Seed = (uint)value; }
+	}
+
+	public int Size
+	{
+		get { return mSize; }
+		set { mSize = value; }
 	}
 }

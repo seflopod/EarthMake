@@ -43,7 +43,7 @@ public class CloudOptions : ScriptableObject
 		upperRightStart = 0.25f;
 	}
 	
-	public float[] ToArray()
+	public float[] GetStartArray()
 	{
 		return new float[] { upperLeftStart, lowerLeftStart, lowerRightStart,
 								upperRightStart };

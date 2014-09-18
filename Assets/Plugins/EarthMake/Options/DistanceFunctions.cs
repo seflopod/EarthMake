@@ -32,7 +32,7 @@ public static class DistanceFuncs
 		return Max(Max(Abs(d.x), Abs(d.y)), Abs(d.z));
 	}
 
-	public static DistanceFunc GetDistanceFunc(DistanceMetric distanceMetric)
+	public static DistanceFunc GetDistanceFunction(DistanceMetric distanceMetric)
 	{
 		DistanceFunc ret;
 		switch(distanceMetric)
@@ -49,7 +49,11 @@ public static class DistanceFuncs
 		case DistanceMetric.Chebyshev:
 			ret = new DistanceFunc(Chebyshev);
 			break;
+		default:
+			ret = new DistanceFunc(EuclidianSq);
+			break;
 		}
+		return ret;
 	}
 	
 	//Some rewrites of other funcs.  May or may not be faster

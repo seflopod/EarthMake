@@ -3,26 +3,7 @@
 //  
 // Author:
 //       Peter Bartosch <bartoschp@gmail.com>
-// 
-// Copyright (c) 2013 Peter Bartosch
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+
 using UnityEditor;
 using UnityEngine;
 using System.IO;
@@ -43,7 +24,7 @@ public class TerrainGeneratorWindow : EditorWindow
 	private static readonly Vector2 MAX_SIZE = new Vector2(3072, 2048);
 
 	//Adds a new menu called "Terrain" and adds an item to it.
-	[MenuItem("Window/Terrain Generator")]
+	[MenuItem("Ogre Toast/EarthMake")]
 	public static void ShowWindow()
 	{
 		//Show existing window instance.  If one doesn't exist, make one
@@ -65,7 +46,7 @@ public class TerrainGeneratorWindow : EditorWindow
 	private SerializedProperty spNormalSize;
 	private SerializedProperty spNormalMultiplier;
 	private SerializedProperty spNormalSeed;
-	private SerializedProperty spNormalWorleyInf;
+	private SerializedProperty spNormalVoronoiInf;
 	private SerializedProperty spNormalCloudInf;
 	private SerializedProperty spNormalShowSeams;
 
@@ -106,7 +87,7 @@ public class TerrainGeneratorWindow : EditorWindow
 		spNormalSize = soNormalOptions.FindProperty("size");
 		spNormalMultiplier = soNormalOptions.FindProperty("multiplier");
 		spNormalSeed = soNormalOptions.FindProperty("seed");
-		spNormalWorleyInf = soNormalOptions.FindProperty("worleyInf");
+		spNormalVoronoiInf = soNormalOptions.FindProperty("voronoiInf");
 		spNormalCloudInf = soNormalOptions.FindProperty("cloudInf");
 		spNormalShowSeams = soNormalOptions.FindProperty("showSeams");
 
@@ -210,8 +191,6 @@ public class TerrainGeneratorWindow : EditorWindow
 	
 	private void showSeedSelect()
 	{
-		int curSeed = spNormalSeed.intValue;
-
 		EditorGUILayout.BeginHorizontal();
 		{
 			EditorGUILayout.PropertyField(spNormalSeed, false);
@@ -226,14 +205,14 @@ public class TerrainGeneratorWindow : EditorWindow
 	
 	private void showInfluenceSliders()
 	{
-		float worleyInf = spNormalWorleyInf.floatValue;
+		float voronoiInf = spNormalVoronoiInf.floatValue;
 		float cloudInf = spNormalCloudInf.floatValue;
 
-		cloudInf = EditorGUILayout.Slider("Cloud Fractal Influence", 1 - worleyInf, 0.0f, 1.0f);
-		worleyInf = EditorGUILayout.Slider("Worley Noise Influence", 1 - cloudInf, 0.0f, 1.0f);
+		cloudInf = EditorGUILayout.Slider("Cloud Fractal Influence", 1 - voronoiInf, 0.0f, 1.0f);
+		voronoiInf = EditorGUILayout.Slider("Voronoi Diagram Influence", 1 - cloudInf, 0.0f, 1.0f);
 		
 		spNormalCloudInf.floatValue = cloudInf;
-		spNormalWorleyInf.floatValue = worleyInf;
+		spNormalVoronoiInf.floatValue = voronoiInf;
 
 		soNormalOptions.ApplyModifiedProperties();
 	}
@@ -399,14 +378,14 @@ public class TerrainGeneratorWindow : EditorWindow
 			
 			tgGenerator.NormalOpt = (NormalOptions)soNormalOptions.targetObject;
 			tgGenerator.CloudOpt = (CloudOptions)soCloudOptions.targetObject;
-			tgGenerator.WorleyOpt = (VoronoiOptions)soVoronoiOptions.targetObject;
+			tgGenerator.VoronoiOpt = (VoronoiOptions)soVoronoiOptions.targetObject;
 			
 			mParametersUsed = "Parameters Used:\n";
 			mParametersUsed += tgGenerator.NormalOpt;
 			mParametersUsed += "\n";
 			mParametersUsed += tgGenerator.CloudOpt;
 			mParametersUsed += "\n";
-			mParametersUsed += tgGenerator.WorleyOpt;
+			mParametersUsed += tgGenerator.VoronoiOpt;
 			
 			tgGenerator.CreateNewHeightMap();
 			texGenerated = tgGenerator.GetAsTexture2D();
@@ -427,10 +406,10 @@ public class TerrainGeneratorWindow : EditorWindow
 			                      (VoronoiOptions)soVoronoiOptions.targetObject, texGenerated);
 			NormalOptions no = ScriptableObject.CreateInstance<NormalOptions>();
 			CloudOptions co = ScriptableObject.CreateInstance<CloudOptions>();
-			WorleyOptions wo = ScriptableObject.CreateInstance<WorleyOptions>();
+			VoronoiOptions vo = ScriptableObject.CreateInstance<VoronoiOptions>();
 			Texture2D t = new Texture2D(2, 2);
-			HeightMapFileIO.Read("all_data.emb", ref no, ref co, ref wo, ref t);
-			Debug.Log(no + "\n\n" + co + "\n\n" + wo);
+			HeightMapFileIO.Read("all_data.emb", ref no, ref co, ref vo, ref t);
+			Debug.Log(no + "\n\n" + co + "\n\n" + vo);
 			File.WriteAllBytes("new_texture.png", t.EncodeToPNG());
 			bIsBusy = false;
 		}

@@ -3,7 +3,7 @@ using System.Collections;
 
 public class MeshGeneratorBehaviour : MonoBehaviour
 {
-	private MeshFilter _mf;
+	/*private MeshFilter _mf;
 	private FractalMesh _fm;
 	public Material defaultMaterial;
 	public bool showSeams = true;
@@ -21,5 +21,5 @@ public class MeshGeneratorBehaviour : MonoBehaviour
 		_mf = gameObject.AddComponent<MeshFilter>();
 		_mf.mesh = _fm.CreateNewMesh();
 		gameObject.GetComponent<MeshRenderer>().material = defaultMaterial;
-	}
+	}*/
 }

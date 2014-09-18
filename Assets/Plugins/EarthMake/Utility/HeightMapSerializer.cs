@@ -3,26 +3,6 @@
 //  
 // Author:
 //       Peter Bartosch <bartoschp@gmail.com>
-// 
-// Copyright (c) 2013 Peter Bartosch
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
 
 using UnityEngine;
 using System.IO;
@@ -62,7 +42,7 @@ public static class HeightMapFileIO
 	/// data for writing.
 	/// </description>
 	public static void Write(string fileName, NormalOptions no, CloudOptions co,
-								WorleyOptions wo, Texture2D tex)
+								VoronoiOptions vo, Texture2D tex)
 	{
 		//if file already exists, will overwrite without warning
 		using(BinaryWriter w = new BinaryWriter(File.Open(fileName+".emb",
@@ -72,7 +52,7 @@ public static class HeightMapFileIO
 			w.Write(no.seed);
 			w.Write(no.multiplier);
 			w.Write(no.cloudInf);
-			w.Write(no.worleyInf);
+			w.Write(no.voronoiInf);
 			w.Write(no.showSeams);
 			
 			w.Write(co.upperLeftStart);
@@ -80,9 +60,10 @@ public static class HeightMapFileIO
 			w.Write(co.lowerRightStart);
 			w.Write(co.upperRightStart);
 			
-			w.Write((int)wo.metric);
-			w.Write((int)wo.combiner);
-			w.Write(wo.zoomLevel);
+			w.Write((int)vo.metric);
+			w.Write((int)vo.combiner);
+			w.Write(vo.numberOfFeaturePoints);
+			w.Write(vo.numberOfSubregions);
 			
 			if(tex != null)
 				w.Write(tex.EncodeToPNG());
@@ -108,9 +89,9 @@ public static class HeightMapFileIO
 	/// The <code>Texture2D</code> containing the heightmap data.
 	/// </param>
 	public static void Write(string fileName, NormalOptions no, CloudOptions co,
-								WorleyOptions wo)
+	                         VoronoiOptions vo)
 	{
-		Write(fileName, no, co, wo, null);
+		Write(fileName, no, co, vo, null);
 	}
 	
 	/// <summary>
@@ -136,7 +117,7 @@ public static class HeightMapFileIO
 	/// The <code>Texture2D</code> containing the heightmap data.
 	/// </param>
 	public static void Read(string fileName, ref NormalOptions no,
-							ref CloudOptions co, ref WorleyOptions wo,
+	                        ref CloudOptions co, ref VoronoiOptions vo,
 							ref Texture2D tex)
 	{
 		using(BinaryReader r = new BinaryReader(File.OpenRead(fileName)))
@@ -145,7 +126,7 @@ public static class HeightMapFileIO
 			no.seed = r.ReadInt32();
 			no.multiplier = r.ReadSingle();
 			no.cloudInf = r.ReadSingle();
-			no.worleyInf = r.ReadSingle();
+			no.voronoiInf = r.ReadSingle();
 			no.showSeams = r.ReadBoolean();
 			
 			co.upperLeftStart = r.ReadSingle();
@@ -153,9 +134,10 @@ public static class HeightMapFileIO
 			co.lowerRightStart = r.ReadSingle();
 			co.upperRightStart = r.ReadSingle();
 			
-			wo.metric = (WorleyNoise.DistanceMetric)r.ReadInt32();
-			wo.combiner = (WorleyNoise.CombineType)r.ReadInt32();
-			wo.zoomLevel = r.ReadSingle();
+			vo.metric = (DistanceFuncs.DistanceMetric)r.ReadInt32();
+			vo.combiner = (CombinerFunctions.CombineFunction)r.ReadInt32();
+			vo.numberOfFeaturePoints = r.ReadInt32();
+			vo.numberOfSubregions = r.ReadInt32();
 	
 			tex.Resize(no.size, no.size);
 			int bLeft = (int)(r.BaseStream.Length - r.BaseStream.Position);

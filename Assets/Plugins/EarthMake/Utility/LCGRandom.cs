@@ -205,7 +205,11 @@ public class LCGRandom
 		set { _increment = value; }
 	}
 	
-	public uint Seed { set { _last = value; } }
+	public uint Seed
+	{
+		get { return _last; }
+		set { _last = value; }
+	}
 	
 	public uint Last { get { return _last; } }
 }

@@ -53,6 +53,7 @@ public static class CombinerFunctions
 			break;
 		default:
 			ret = new CombiningFunc(D2MinusD1);
+			break;
 		}
 		return ret;
 	}
