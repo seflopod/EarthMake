@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Collections.Generic;
 
 public delegate float DistanceFunc(Vector3 ptA, Vector3 ptB);
 public delegate float CombiningFunc(float[] distances);
@@ -9,7 +10,7 @@ public class VoronoiDiagram
 	private int mSize;
 	private DistanceFunc delDistanceFunc;
 	private CombiningFunc delCombiningFunc;
-	private int mNumFeaturePoints;
+	private int mNumFeaturePoints; //per-region
 	private int mNumSubregions;
 	private int[] aFeaturePoints;
 	private float[] aField; //row-major
@@ -35,48 +36,58 @@ public class VoronoiDiagram
 		mNumFeaturePoints = options.numberOfFeaturePoints;
 		mNumSubregions = options.numberOfSubregions;
 
-		aFeaturePoints = new int[mNumFeaturePoints];
+		aFeaturePoints = new int[0];
 		mRNG = new LCGRandom(seed);
 	}
 
 	private void generateFeaturePoints()
 	{
-		uint subRegionWidth = (uint)Mathf.Sqrt(mNumSubregions);
-		uint subRegionHeight = 0;
+		int subRegionWidth = (int)Mathf.Sqrt(mNumSubregions);
+		int subRegionHeight = 0;
 		while(mNumSubregions % subRegionWidth != 0 && subRegionWidth > 0)
 		{
 			subRegionWidth--;
 		}
 		if(subRegionWidth > 0)
-		{	//this does not guarantee any sort of even distribution of the 
-			//feature points.  The use of sub regions is handy because it
-			//narrows the focus for each random index.  This would probably
-			//be more useful if I tried to guarantee some sort of even
-			//distribution over the regions, or attempt to keep to some sort of
-			//density requirement, but that has not been done.
-			subRegionHeight = (uint)mNumSubregions / subRegionWidth;
-			for(int i=0;i<mNumFeaturePoints;++i)
+		{	
+			subRegionHeight = mNumSubregions / subRegionWidth;
+			Debug.Log(subRegionWidth + ", " + subRegionHeight);
+			List<int> pointsList = new List<int>();
+			for(int startR=0;startR<(mNumSubregions-1)*subRegionHeight;startR+=subRegionHeight)
 			{
-				uint regionRow = mRNG.Next() % subRegionHeight;
-				uint regionCol = mRNG.Next() % subRegionWidth;
+				for(int startC=0;startC<(mNumSubregions-1)*subRegionWidth;startC+=subRegionWidth)
+				{
+					int[] indices = new int[subRegionWidth*subRegionHeight];
+					int i=0;
+					for(int r=startR;r<subRegionHeight;++r)
+					{
+						for(int c=startC;c<subRegionHeight;++c)
+						{
+							indices[i++] = r*mSize+c;
+						}
+					}
 
-				//the minimum index of a row that contains an index that is
-				//part of the subregion can be found by dividing the size of a
-				//side by the subRegionHeight (which we already have in
-				//subRegionWidth) and multiplying it by the row of the region.
-				uint regionRowMin = subRegionWidth * regionRow;
+					for(int j=0;j<indices.Length;++j)
+					{
+						int rndIdx = (int)(mRNG.Next() % (indices.Length-j));
+						int tmp = indices[j];
+						indices[j] = indices[rndIdx];
+						indices[rndIdx] = tmp;
+					}
 
-				//The max row index is the minimum for the NEXT row, minus one,
-				//so the feature row is just a random number from 0 to the width
-				//plus the min
-				uint featureRow = mRNG.Next() % (subRegionWidth) + regionRowMin;
-
-				//I think the column info is found the exact same way
-				uint regionColMin = subRegionHeight * regionCol;
-				uint featureCol = mRNG.Next() % (subRegionHeight) + regionColMin;
-
-				aFeaturePoints[i] = (int)(featureRow * featureCol);
+					for(int k=0;k<mNumFeaturePoints && k<indices.Length;++k)
+					{
+						pointsList.Add(indices[k]);
+					}
+				}
 			}
+			aFeaturePoints = pointsList.ToArray();
+			string dbgStr = aFeaturePoints.Length.ToString() + ":";
+			for(int i=0;i<aFeaturePoints.Length;++i)
+			{
+				dbgStr+=aFeaturePoints[i].ToString() + ",";
+			}
+			Debug.Log(dbgStr.Substring(0, dbgStr.Length-1));
 		}
 	}
 
