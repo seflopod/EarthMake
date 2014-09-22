@@ -18,8 +18,8 @@ public class VoronoiOptions : ScriptableObject
 	{
 		metric = DistanceFuncs.DistanceMetric.EuclidianSq;
 		combiner = CombinerFunctions.CombineFunction.D2MinusD1;
-		numberOfFeaturePoints = 10;
-		numberOfSubregions = 9;
+		numberOfFeaturePoints = 2;
+		numberOfSubregions = 4;
 	}
 	
 	public override string ToString()

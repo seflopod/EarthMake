@@ -3,8 +3,8 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 
-public delegate float DistanceFunc(Vector3 ptA, Vector3 ptB);
-public delegate float CombiningFunc(float[] distances);
+
+
 public class VoronoiDiagram
 {
 	private int mSize;
@@ -15,18 +15,6 @@ public class VoronoiDiagram
 	private int[] aFeaturePoints;
 	private float[] aField; //row-major
 	private LCGRandom mRNG;
-
-	public VoronoiDiagram(int size, DistanceFunc distanceFunc, CombiningFunc combiningFunc, int numberOfFeaturePoints, int numberOfSubregions, uint seed)
-	{
-		mSize = size;
-		delDistanceFunc = distanceFunc;
-		delCombiningFunc = combiningFunc;
-		mNumFeaturePoints = numberOfFeaturePoints;
-		mNumSubregions = numberOfSubregions;
-		mRNG = new LCGRandom(seed);
-		aField = new float[0];
-		aFeaturePoints = new int[mNumFeaturePoints];
-	}
 
 	public VoronoiDiagram(int size, int seed, VoronoiOptions options)
 	{
@@ -43,51 +31,46 @@ public class VoronoiDiagram
 	private void generateFeaturePoints()
 	{
 		int subRegionWidth = (int)Mathf.Sqrt(mNumSubregions);
-		int subRegionHeight = 0;
 		while(mNumSubregions % subRegionWidth != 0 && subRegionWidth > 0)
 		{
 			subRegionWidth--;
 		}
 		if(subRegionWidth > 0)
 		{	
-			subRegionHeight = mNumSubregions / subRegionWidth;
+			int subRegionHeight = mNumSubregions / subRegionWidth;
+			int c = mSize / subRegionWidth;
+			int r = mNumSubregions / c;
 			Debug.Log(subRegionWidth + ", " + subRegionHeight);
 			List<int> pointsList = new List<int>();
-			for(int startR=0;startR<(mNumSubregions-1)*subRegionHeight;startR+=subRegionHeight)
+			int[] allIndices = new int[mSize * mSize];
+			for(int i=0;i<allIndices.Length;++i)
 			{
-				for(int startC=0;startC<(mNumSubregions-1)*subRegionWidth;startC+=subRegionWidth)
+				int j = (int)(mRNG.Next() % (i+1));
+				if(j != i)
 				{
-					int[] indices = new int[subRegionWidth*subRegionHeight];
-					int i=0;
-					for(int r=startR;r<subRegionHeight;++r)
+					allIndices[i] = j;
+				}
+				allIndices[j] = i;
+			}
+			for(int i=0;i<mNumSubregions;++i)
+			{
+				List<int> indices = new List<int>();
+				int j = 0;
+				while(j < allIndices.Length && indices.Count < mNumFeaturePoints)
+				{
+					indices.Clear();
+					int idx = allIndices[j++];
+					for(int k=0;k<mSize / subRegionHeight; ++k)
 					{
-						for(int c=startC;c<subRegionHeight;++c)
+						if(idx < mSize*k+i*mSize / subRegionWidth)
 						{
-							indices[i++] = r*mSize+c;
+							indices.Add(idx);
+							break;
 						}
 					}
-
-					for(int j=0;j<indices.Length;++j)
-					{
-						int rndIdx = (int)(mRNG.Next() % (indices.Length-j));
-						int tmp = indices[j];
-						indices[j] = indices[rndIdx];
-						indices[rndIdx] = tmp;
-					}
-
-					for(int k=0;k<mNumFeaturePoints && k<indices.Length;++k)
-					{
-						pointsList.Add(indices[k]);
-					}
 				}
+				pointsList.AddRange(indices);
 			}
-			aFeaturePoints = pointsList.ToArray();
-			string dbgStr = aFeaturePoints.Length.ToString() + ":";
-			for(int i=0;i<aFeaturePoints.Length;++i)
-			{
-				dbgStr+=aFeaturePoints[i].ToString() + ",";
-			}
-			Debug.Log(dbgStr.Substring(0, dbgStr.Length-1));
 		}
 	}
 

@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public delegate float CombiningFunc(float[] distances);
 public static class CombinerFunctions
 {
 	public enum CombineFunction
