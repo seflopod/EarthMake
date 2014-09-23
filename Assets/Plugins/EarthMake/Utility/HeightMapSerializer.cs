@@ -134,7 +134,7 @@ public static class HeightMapFileIO
 			co.lowerRightStart = r.ReadSingle();
 			co.upperRightStart = r.ReadSingle();
 			
-			vo.metric = (DistanceFuncs.DistanceMetric)r.ReadInt32();
+			vo.metric = (DistanceFunctions.DistanceMetric)r.ReadInt32();
 			vo.combiner = (CombinerFunctions.CombineFunction)r.ReadInt32();
 			vo.numberOfFeaturePoints = r.ReadInt32();
 			vo.numberOfSubregions = r.ReadInt32();

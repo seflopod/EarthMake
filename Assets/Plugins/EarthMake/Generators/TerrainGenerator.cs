@@ -43,10 +43,10 @@ public class TerrainGenerator
 	{
 		_heightMap = new float[_normalOpt.size * _normalOpt.size];
 		float[] cloud = _cfGen.GetNewField();
-		float[] worley = _vnGen.GetNewField();
+		float[] voronoi = _vnGen.GetNewField();
 		for(int i=0; i<_heightMap.Length; ++i)
 		{
-			_heightMap[i] = _normalOpt.voronoiInf * worley[i] + _normalOpt.cloudInf * cloud[i];
+			_heightMap[i] = _normalOpt.voronoiInf * voronoi[i] + _normalOpt.cloudInf * cloud[i];
 		}
 		return _heightMap;
 	}

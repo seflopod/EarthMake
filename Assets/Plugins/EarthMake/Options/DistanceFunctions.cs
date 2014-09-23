@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 public delegate float DistanceFunc(Vector3 ptA, Vector3 ptB);
-public static class DistanceFuncs
+public static class DistanceFunctions
 {
 	public enum DistanceMetric
 	{
