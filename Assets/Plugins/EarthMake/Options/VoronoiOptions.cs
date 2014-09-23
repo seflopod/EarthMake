@@ -13,6 +13,7 @@ public class VoronoiOptions : ScriptableObject
 	public CombinerFunctions.CombineFunction combiner;
 	public int numberOfFeaturePoints;
 	public int numberOfSubregions;
+	public float multiplier;
 
 	public void OnEnable()
 	{
@@ -20,6 +21,7 @@ public class VoronoiOptions : ScriptableObject
 		combiner = CombinerFunctions.CombineFunction.D2MinusD1;
 		numberOfFeaturePoints = 8;
 		numberOfSubregions = 8;
+		multiplier = 10f;
 	}
 	
 	public override string ToString()
@@ -28,7 +30,8 @@ public class VoronoiOptions : ScriptableObject
 								"Combine Type: {1}\n\t" +
 								"Feature Points: {2}\n\t" +
 								"Subregions: {3}",
-								metric, combiner, numberOfFeaturePoints, numberOfSubregions);
+		                     	"Multiplier: {4}",
+								metric, combiner, numberOfFeaturePoints, numberOfSubregions, multiplier);
 	}
 	
 	public override int GetHashCode()
@@ -46,7 +49,8 @@ public class VoronoiOptions : ScriptableObject
 	{
 		return (a.metric == b.metric && a.combiner == b.combiner &&
 				a.numberOfFeaturePoints == b.numberOfFeaturePoints &&
-		        a.numberOfSubregions == b.numberOfSubregions);
+		        a.numberOfSubregions == b.numberOfSubregions &&
+		        a.multiplier == b.multiplier);
 	}
 	
 	public static bool operator!=(VoronoiOptions a, VoronoiOptions b)

@@ -14,6 +14,7 @@ public class VoronoiDiagram
 	private int mNumSubregions;
 	private int[] aFeaturePoints;
 	private float[] aField; //row-major
+	private float mMultiplier;
 	private LCGRandom mRNG;
 	
 	public VoronoiDiagram(int size, int seed, VoronoiOptions options)
@@ -23,6 +24,7 @@ public class VoronoiDiagram
 		delCombiningFunc = CombinerFunctions.GetFunction(options.combiner);
 		mNumFeaturePoints = options.numberOfFeaturePoints;
 		mNumSubregions = options.numberOfSubregions;
+		mMultiplier = options.multiplier;
 		
 		aFeaturePoints = new int[0];
 		mRNG = new LCGRandom(seed);
@@ -33,53 +35,37 @@ public class VoronoiDiagram
 	//my feeling is that the main weakness of the generator will come from here.
 	private void generateFeaturePoints()
 	{
-		int subRegionWidth = (int)Mathf.Sqrt(mNumSubregions);
-		while(mNumSubregions % subRegionWidth != 0 && subRegionWidth > 0)
+		int[] allIndices = new int[mSize * mSize];
+		for(int i=0;i<allIndices.Length;++i)
 		{
-			subRegionWidth--;
-		}
-		if(subRegionWidth > 0)
-		{	
-			int subRegionHeight = mNumSubregions / subRegionWidth;
-			List<int> pointsList = new List<int>();
-			int[] allIndices = new int[mSize * mSize];
-			for(int i=0;i<allIndices.Length;++i)
+			int j = (int)(mRNG.Next() % (i+1));
+			if(j != i)
 			{
-				int j = (int)(mRNG.Next() % (i+1));
-				if(j != i)
-				{
-					allIndices[i] = j;
-				}
-				allIndices[j] = i;
+				allIndices[i] = j;
 			}
+			allIndices[j] = i;
+		}
 
-			int rowsPerRegion = mSize / subRegionHeight;
-			int colsPerRegion = mSize / subRegionWidth;
-			List<int> indices = new List<int>();
-			for(int i=0;i<mNumSubregions;++i)
+		long elePerRegion = mSize * mSize / mNumSubregions;
+		List<int> featurePointsList = new List<int>();
+		for(int i=0;i<mNumSubregions;++i)
+		{
+			long minIdx = i*elePerRegion;
+			for(int j=0;j<mNumFeaturePoints;++j)
 			{
-				int j = 0;
-				int regionR = i / subRegionHeight;
-				int regionC = i % subRegionHeight;
-				int testRMin = regionR * rowsPerRegion;
-				int testCMin = regionC * colsPerRegion;
-				int testRMax = (regionR+1) * rowsPerRegion;
-				int testCMax = (regionC+1) * colsPerRegion;
-				while(j < allIndices.Length && indices.Count < mNumFeaturePoints)
+				long idx = ((long)mRNG.Next() % elePerRegion) + minIdx;
+				if(allIndices[idx] != -1)
 				{
-					int idx = allIndices[j++];
-					int idxR = idx / rowsPerRegion;
-					int idxC = (colsPerRegion * regionC) + idx % rowsPerRegion;
-					if((idxR >= testRMin && idxR < testRMax) && (idxC >= testCMin && idxC < testCMax))
-					{
-						indices.Add(idx);
-					}
+					featurePointsList.Add(allIndices[idx]);
+					allIndices[idx] = -1;
 				}
-				pointsList.AddRange(indices);
-				indices.Clear();
+				else
+				{
+					--j;
+				}
 			}
-			aFeaturePoints = pointsList.ToArray();
 		}
+		aFeaturePoints = featurePointsList.ToArray();
 	}
 	
 	public float[] GetNewField()
@@ -97,7 +83,7 @@ public class VoronoiDiagram
 				for(int j=0;j<distances.Length;++j)
 				{
 					Vector3 newPoint = new Vector3((aFeaturePoints[j]%mSize) / (float)mSize, (aFeaturePoints[j]/mSize) / (float)mSize, 0f);
-					distances[j] = delDistanceFunc(newPoint, curPoint);
+					distances[j] = mMultiplier * delDistanceFunc(newPoint, curPoint);
 				}
 				Array.Sort<float>(distances, new Comparison<float>(
 					(ele1, ele2) => ele1.CompareTo(ele2)));

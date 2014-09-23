@@ -44,7 +44,6 @@ public class TerrainGeneratorWindow : EditorWindow
 	private bool bShouldShowNormalOptions;
 	private SerializedObject soNormalOptions;
 	private SerializedProperty spNormalSize;
-	private SerializedProperty spNormalMultiplier;
 	private SerializedProperty spNormalSeed;
 	private SerializedProperty spNormalVoronoiInf;
 	private SerializedProperty spNormalCloudInf;
@@ -65,6 +64,7 @@ public class TerrainGeneratorWindow : EditorWindow
 	private SerializedProperty spVoronoiCombiner;
 	private SerializedProperty spVoronoiFeaturePoints;
 	private SerializedProperty spVoronoiSubregions;
+	private SerializedProperty spVoronoiMultiplier;
 	#endregion
 
 	#region other_fields
@@ -85,7 +85,6 @@ public class TerrainGeneratorWindow : EditorWindow
 
 		//init normal properties
 		spNormalSize = soNormalOptions.FindProperty("size");
-		spNormalMultiplier = soNormalOptions.FindProperty("multiplier");
 		spNormalSeed = soNormalOptions.FindProperty("seed");
 		spNormalVoronoiInf = soNormalOptions.FindProperty("voronoiInf");
 		spNormalCloudInf = soNormalOptions.FindProperty("cloudInf");
@@ -102,6 +101,7 @@ public class TerrainGeneratorWindow : EditorWindow
 		spVoronoiCombiner = soVoronoiOptions.FindProperty("combiner");
 		spVoronoiFeaturePoints = soVoronoiOptions.FindProperty("numberOfFeaturePoints");
 		spVoronoiSubregions = soVoronoiOptions.FindProperty("numberOfSubregions");
+		spVoronoiMultiplier = soVoronoiOptions.FindProperty("multiplier");
 
 		//should we show the options right away?
 		bShouldShowNormalOptions = true;
@@ -155,7 +155,6 @@ public class TerrainGeneratorWindow : EditorWindow
 		{
 			EditorGUI.indentLevel++;
 			showSizeSelect();
-			showMultiplierSelect();
 			showSeedSelect();
 			showInfluenceSliders();
 			showSeamSelect();
@@ -183,8 +182,8 @@ public class TerrainGeneratorWindow : EditorWindow
 	
 	private void showMultiplierSelect()
 	{
-		EditorGUILayout.PropertyField(spNormalMultiplier, false);
-		spNormalMultiplier.floatValue = Mathf.Clamp(spNormalMultiplier.floatValue, 0f, Mathf.Infinity);
+		EditorGUILayout.PropertyField(spVoronoiMultiplier, false);
+		spVoronoiMultiplier.floatValue = Mathf.Clamp(spVoronoiMultiplier.floatValue, 0f, Mathf.Infinity);
 
 		soNormalOptions.ApplyModifiedProperties();
 	}
@@ -350,6 +349,7 @@ public class TerrainGeneratorWindow : EditorWindow
 			EditorGUILayout.PropertyField(spVoronoiCombiner, false);
 			EditorGUILayout.PropertyField(spVoronoiFeaturePoints, false);
 			EditorGUILayout.PropertyField(spVoronoiSubregions, false);
+			showMultiplierSelect();
 
 			soVoronoiOptions.ApplyModifiedProperties();
 			soVoronoiOptions.UpdateIfDirtyOrScript();

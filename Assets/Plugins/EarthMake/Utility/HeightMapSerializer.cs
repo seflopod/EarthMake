@@ -50,7 +50,6 @@ public static class HeightMapFileIO
 		{
 			w.Write(no.size);
 			w.Write(no.seed);
-			w.Write(no.multiplier);
 			w.Write(no.cloudInf);
 			w.Write(no.voronoiInf);
 			w.Write(no.showSeams);
@@ -64,6 +63,7 @@ public static class HeightMapFileIO
 			w.Write((int)vo.combiner);
 			w.Write(vo.numberOfFeaturePoints);
 			w.Write(vo.numberOfSubregions);
+			w.Write(vo.multiplier);
 			
 			if(tex != null)
 				w.Write(tex.EncodeToPNG());
@@ -124,7 +124,6 @@ public static class HeightMapFileIO
 		{
 			no.size = r.ReadInt32();
 			no.seed = r.ReadInt32();
-			no.multiplier = r.ReadSingle();
 			no.cloudInf = r.ReadSingle();
 			no.voronoiInf = r.ReadSingle();
 			no.showSeams = r.ReadBoolean();
@@ -138,6 +137,7 @@ public static class HeightMapFileIO
 			vo.combiner = (CombinerFunctions.CombineFunction)r.ReadInt32();
 			vo.numberOfFeaturePoints = r.ReadInt32();
 			vo.numberOfSubregions = r.ReadInt32();
+			vo.multiplier = r.ReadSingle();
 	
 			tex.Resize(no.size, no.size);
 			int bLeft = (int)(r.BaseStream.Length - r.BaseStream.Position);
