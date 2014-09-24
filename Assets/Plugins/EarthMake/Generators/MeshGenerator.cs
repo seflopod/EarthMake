@@ -67,7 +67,46 @@ public static class MeshGenerator
 		ret.tangents = calculateMeshTangents(ret);
 		return ret;
 	}
-	
+
+	public static Mesh CreateNewMeshFromHeightMap(uint size, float[] heightMap)
+	{
+		if(heightMap.LongLength != (long)(size*size))
+		{
+			return null;
+		}
+		Mesh mesh = CreateNewMeshPlane(size, size);
+		Vector3[] newVerts = mesh.vertices;
+		int[] newTris = mesh.triangles;
+		for(int i=0;i<newVerts.Length;++i)
+		{
+			int r = (int)(newVerts[i].z+size/2);
+			if((float)r/size >= 1)
+			{
+				if(r == size)
+					r-=1;
+				else
+					r-=2;
+			}
+			int c = (int)(newVerts[i].x+size/2);
+			if((float)c/size >= 1)
+			{
+				if(c == size)
+					c-=1;
+				else
+					c-=2;
+			}
+			newVerts[i].y = 5*heightMap[(r*size + c)];
+		}
+		
+		mesh.vertices = newVerts;
+		mesh.triangles = newTris;
+		mesh.RecalculateNormals();
+		mesh.tangents = MeshGenerator.calculateMeshTangents(mesh);
+		mesh.Optimize();
+
+		return mesh;
+	}
+
 	public static Mesh CreateNewMeshPlane(uint height, uint width)
 	{
 		return CreateNewMeshPlane(height, width, false);

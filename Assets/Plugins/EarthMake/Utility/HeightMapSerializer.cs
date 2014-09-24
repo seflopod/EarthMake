@@ -52,6 +52,8 @@ public static class HeightMapFileIO
 			w.Write(no.seed);
 			w.Write(no.cloudInf);
 			w.Write(no.voronoiInf);
+			w.Write(no.useThermalErosion);
+			w.Write(no.useHydroErosion);
 			w.Write(no.showSeams);
 			
 			w.Write(co.upperLeftStart);
@@ -126,6 +128,8 @@ public static class HeightMapFileIO
 			no.seed = r.ReadInt32();
 			no.cloudInf = r.ReadSingle();
 			no.voronoiInf = r.ReadSingle();
+			no.useThermalErosion = r.ReadBoolean();
+			no.useHydroErosion = r.ReadBoolean();
 			no.showSeams = r.ReadBoolean();
 			
 			co.upperLeftStart = r.ReadSingle();

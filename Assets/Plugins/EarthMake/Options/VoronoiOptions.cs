@@ -29,7 +29,7 @@ public class VoronoiOptions : ScriptableObject
 		return string.Format("[VoronoiOptions]\n\tDistance Metric: {0}\n\t" +
 								"Combine Type: {1}\n\t" +
 								"Feature Points: {2}\n\t" +
-								"Subregions: {3}",
+								"Subregions: {3}\n\t" +
 		                     	"Multiplier: {4}",
 								metric, combiner, numberOfFeaturePoints, numberOfSubregions, multiplier);
 	}

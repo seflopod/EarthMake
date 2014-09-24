@@ -14,6 +14,7 @@ public class TerrainGenerator
 	private float[] _heightMap;
 	private CloudFractal _cfGen;
 	private VoronoiDiagram _vnGen;
+	private ErosionGenerator _erGen;
 	
 	public TerrainGenerator()
 	{
@@ -48,6 +49,16 @@ public class TerrainGenerator
 		{
 			_heightMap[i] = _normalOpt.voronoiInf * voronoi[i] + _normalOpt.cloudInf * cloud[i];
 		}
+		_erGen = new ErosionGenerator(_heightMap);
+		if(_normalOpt.useThermalErosion)
+		{
+			_heightMap = _erGen.ThermalErosion(3);
+		}
+		if(_normalOpt.useHydroErosion)
+		{
+
+		}
+
 		return _heightMap;
 	}
 	

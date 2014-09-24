@@ -16,6 +16,8 @@ public class NormalOptions : ScriptableObject
 	public int seed;
 	public float voronoiInf;
 	public float cloudInf;
+	public bool useThermalErosion;
+	public bool useHydroErosion;
 	public bool showSeams;
 	
 	/// <summary>
@@ -30,6 +32,8 @@ public class NormalOptions : ScriptableObject
 		cloudInf = 0.67f;
 		seed = 0;
 		size = 256;
+		useThermalErosion = true;
+		useHydroErosion = true;
 		showSeams = false;
 	}
 	
@@ -39,9 +43,10 @@ public class NormalOptions : ScriptableObject
 								"Seed: {1}\n\t" +
 								"Cloud Fractal Influence: {2:0.0%}\n\t" +
 								"Voronoi Diagram Influence: {3:0.0%}\n\t" +
-								"Show Seams: {4}",
-								size, seed, cloudInf, voronoiInf,
-								showSeams);
+								"Use Thermal Erosion: {4}\n\t"+
+								"Use Hyrdo Erosion: {5}\n\t" +
+								"Show Seams: {6}",
+			                     size, seed, cloudInf, voronoiInf, useThermalErosion, useHydroErosion, showSeams);
 	}
 	
 	public override int GetHashCode()

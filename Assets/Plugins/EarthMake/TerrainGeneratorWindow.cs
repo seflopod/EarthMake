@@ -47,6 +47,8 @@ public class TerrainGeneratorWindow : EditorWindow
 	private SerializedProperty spNormalSeed;
 	private SerializedProperty spNormalVoronoiInf;
 	private SerializedProperty spNormalCloudInf;
+	private SerializedProperty spNormalUseThermal;
+	private SerializedProperty spNormalUseHyrdo;
 	private SerializedProperty spNormalShowSeams;
 
 	private bool bShouldShowAdvancedOptions;
@@ -88,6 +90,8 @@ public class TerrainGeneratorWindow : EditorWindow
 		spNormalSeed = soNormalOptions.FindProperty("seed");
 		spNormalVoronoiInf = soNormalOptions.FindProperty("voronoiInf");
 		spNormalCloudInf = soNormalOptions.FindProperty("cloudInf");
+		spNormalUseThermal = soNormalOptions.FindProperty("useThermalErosion");
+		spNormalUseHyrdo = soNormalOptions.FindProperty("useHydroErosion");
 		spNormalShowSeams = soNormalOptions.FindProperty("showSeams");
 
 		//init cloud properties
@@ -132,6 +136,7 @@ public class TerrainGeneratorWindow : EditorWindow
 				if(!bIsBusy)
 				{
 					showGenerateHeightMapBtn();
+					showGenerateMesh();
 				}
 			}
 			EditorGUILayout.EndVertical();
@@ -157,6 +162,8 @@ public class TerrainGeneratorWindow : EditorWindow
 			showSizeSelect();
 			showSeedSelect();
 			showInfluenceSliders();
+			EditorGUILayout.PropertyField(spNormalUseThermal);
+			EditorGUILayout.PropertyField(spNormalUseHyrdo);
 			showSeamSelect();
 			soNormalOptions.UpdateIfDirtyOrScript();
 			EditorGUI.indentLevel--;
@@ -168,7 +175,7 @@ public class TerrainGeneratorWindow : EditorWindow
 		int curSize = spNormalSize.intValue;
 		
 		curSize = EditorGUILayout.IntField("Size", curSize);
-		curSize = Mathf.Clamp(curSize, 1, 2048);
+		curSize = Mathf.Clamp(curSize, 1, 128);
 
 		if(!Mathf.IsPowerOfTwo(curSize))
 		{	//we are only dealing with power of two textures, so if it doesn't
@@ -177,14 +184,6 @@ public class TerrainGeneratorWindow : EditorWindow
 		}
 
 		spNormalSize.intValue = curSize;
-		soNormalOptions.ApplyModifiedProperties();
-	}
-	
-	private void showMultiplierSelect()
-	{
-		EditorGUILayout.PropertyField(spVoronoiMultiplier, false);
-		spVoronoiMultiplier.floatValue = Mathf.Clamp(spVoronoiMultiplier.floatValue, 0f, Mathf.Infinity);
-
 		soNormalOptions.ApplyModifiedProperties();
 	}
 	
@@ -356,6 +355,14 @@ public class TerrainGeneratorWindow : EditorWindow
 			EditorGUI.indentLevel--;
 		}
 	}
+
+	private void showMultiplierSelect()
+	{
+		EditorGUILayout.PropertyField(spVoronoiMultiplier, false);
+		spVoronoiMultiplier.floatValue = Mathf.Clamp(spVoronoiMultiplier.floatValue, 0f, Mathf.Infinity);
+		
+		soNormalOptions.ApplyModifiedProperties();
+	}
 	#endregion
 	
 	#region other_disp
@@ -431,6 +438,21 @@ public class TerrainGeneratorWindow : EditorWindow
 			EditorGUI.DrawPreviewTexture(bounds, texGenerated, null, ScaleMode.ScaleToFit);
 
 			EditorGUILayout.EndScrollView();
+		}
+	}
+
+	private void showGenerateMesh()
+	{
+		if(GUILayout.Button("Create Mesh") && !bIsBusy && bIsGenerated)
+		{
+			GameObject go = new GameObject("Generated Mesh");
+			MeshFilter mf = go.AddComponent<MeshFilter>();
+			mf.sharedMesh = MeshGenerator.CreateNewMeshFromHeightMap((uint)tgGenerator.NormalOpt.size, tgGenerator.HeightMap);
+			if(mf.sharedMesh == null)
+			{
+				Debug.Log("wtf");
+			}
+			MeshRenderer mr = go.AddComponent<MeshRenderer>();
 		}
 	}
 	#endregion
